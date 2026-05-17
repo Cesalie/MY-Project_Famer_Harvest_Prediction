@@ -1,0 +1,184 @@
+{
+  "best_model": "Random Forest",
+  "features": [
+    "Year",
+    "Season",
+    "Crop_Type",
+    "Sector",
+    "Farm_Size_Are",
+    "Area_Planted_Are",
+    "Farmer_Category",
+    "Fertilizer_Used",
+    "Fertilizer_Amount_Kg_per_Are",
+    "Irrigation_Used",
+    "Soil_Health",
+    "Previous_Crop",
+    "Weather_Impact",
+    "Pest_Disease_Pressure",
+    "Labor_Availability",
+    "Extension_Service_Access",
+    "Credit_Access",
+    "Market_Distance_km",
+    "Avg_Temperature_Celsius",
+    "Total_Rainfall_mm",
+    "Relative_Humidity_Percent",
+    "Sunshine_Hours_per_Day",
+    "Wind_Speed_kmh",
+    "Evapotranspiration_mm",
+    "pH_Level",
+    "Organic_Matter_Percent",
+    "Nitrogen_ppm",
+    "Phosphorus_ppm",
+    "Potassium_ppm",
+    "Avg_Pest_YieldLoss",
+    "Total_Cost_RWF_per_Are"
+  ],
+  "target": "Yield_Kg_per_Are",
+  "units": {
+    "farm_size": "are",
+    "yield": "kg/are",
+    "note": "1 ha = 100 are. Model trained directly on are units."
+  },
+  "r2_score": 0.8476446519978946,
+  "mae": 3.2142919628277613,
+  "accuracy": 86.39062057788277,
+  "crops": [
+    "Maize",
+    "Beans",
+    "Rice"
+  ],
+  "seasons": [
+    "Season A",
+    "Season B"
+  ],
+  "sectors": [
+    "Gashora",
+    "Juru",
+    "Kamabuye",
+    "Mareba",
+    "Mayange",
+    "Musenyi",
+    "Mwogo",
+    "Ngeruka",
+    "Ntarama",
+    "Nyamata",
+    "Nyarugenge",
+    "Rilima",
+    "Ruhuha",
+    "Rweru",
+    "Shyara"
+  ],
+  "yield_stats": {
+    "mean": 23.832031111111114,
+    "std": 10.775975734381698,
+    "min": 7.953,
+    "max": 49.92,
+    "unit": "kg/are"
+  },
+  "crop_benchmarks_kg_are": {
+    "Beans": 11.910273333333334,
+    "Maize": 23.222673333333333,
+    "Rice": 36.363146666666665
+  },
+  "model_comparison": {
+    "Random Forest": {
+      "r2": 0.8476446519978946,
+      "mae": 3.2142919628277613,
+      "accuracy": 86.39062057788277
+    },
+    "Gradient Boosting": {
+      "r2": 0.8331285064087662,
+      "mae": 3.3996686286808444,
+      "accuracy": 85.6057318960898
+    },
+    "Linear Regression": {
+      "r2": 0.8420787909226519,
+      "mae": 3.3195069844033025,
+      "accuracy": 85.94513797515489
+    }
+  },
+  "label_encoder_classes": {
+    "Crop_Type": [
+      "Beans",
+      "Maize",
+      "Rice"
+    ],
+    "Season": [
+      "Season A",
+      "Season B"
+    ],
+    "Sector": [
+      "Gashora",
+      "Juru",
+      "Kamabuye",
+      "Mareba",
+      "Mayange",
+      "Musenyi",
+      "Mwogo",
+      "Ngeruka",
+      "Ntarama",
+      "Nyamata",
+      "Nyarugenge",
+      "Rilima",
+      "Ruhuha",
+      "Rweru",
+      "Shyara"
+    ],
+    "Farmer_Category": [
+      "Large",
+      "Medium",
+      "Small"
+    ],
+    "Fertilizer_Used": [
+      "No",
+      "Partial",
+      "Yes"
+    ],
+    "Irrigation_Used": [
+      "No",
+      "Partial",
+      "Yes"
+    ],
+    "Soil_Health": [
+      "Fair",
+      "Good",
+      "Poor"
+    ],
+    "Previous_Crop": [
+      "Beans",
+      "Cassava",
+      "Fallow",
+      "Maize",
+      "Rice"
+    ],
+    "Weather_Impact": [
+      "Favorable",
+      "Moderate",
+      "Unfavorable"
+    ],
+    "Pest_Disease_Pressure": [
+      "High",
+      "Low",
+      "Medium"
+    ],
+    "Quality_Grade": [
+      "Below Standard",
+      "Premium",
+      "Standard"
+    ],
+    "Labor_Availability": [
+      "Adequate",
+      "Limited",
+      "Sufficient"
+    ],
+    "Extension_Service_Access": [
+      "No",
+      "Yes"
+    ],
+    "Credit_Access": [
+      "No",
+      "Partial",
+      "Yes"
+    ]
+  }
+}
