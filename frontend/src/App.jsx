@@ -29,13 +29,10 @@ const SEASONS = ["Season A","Season B"];
 const SECTORS = ["Gashora","Juru","Kamabuye","Mareba","Mayange","Musenyi","Mwogo","Ngeruka","Ntarama","Nyamata","Nyarugenge","Rilima","Ruhuha","Rweru","Shyara"];
 const CROPS   = ["Maize","Beans","Rice"];
 const SOILS   = ["Clay","Sandy-Clay","Loam"];
-const CROP_ICON = {Maize:"/icons/maize.png",Beans:"/icons/beans.png",Rice:"/icons/rice.png"};
+const CROP_ICON = {Maize:"bi-flower3",Beans:"bi-circle-fill",Rice:"bi-flower2"};
 const CropIcon = ({name, style={}}) => {
   const icon = CROP_ICON[name] || "bi-flower2";
-  if (icon.startsWith('/icons/')) {
-    return <img src={icon} alt={name} style={{ width: '1.2em', height: '1.2em', verticalAlign: 'middle', objectFit: 'contain', ...style }} />;
-  }
-  return <i className={icon} style={style}></i>;
+  return <i className={`bi ${icon}`} style={style}></i>;
 };
 const CROP_BENCH = {Maize:23.22,Beans:11.91,Rice:36.36};
 
@@ -357,7 +354,7 @@ const SmsNotification = ({ sms, onClear }) => {
 // ── Translations ──────────────────────────────────────────────────────────────
 const T = {
   en: {
-    appName:"Harvest Predictor",appSub:"Bugesera District · Rwanda · Smart Farming",
+    appName:"Harvest Prediction System",appSub:"Bugesera District Agricultural Intelligence",
     login:"Login",register:"Farmer Registration",logout:"Logout",
     farmer:"Farmer",officer:"Agri Officer",
     phone:"Phone / Farmer ID",phoneReg:"Phone Number",password:"Password",confirmPw:"Confirm Password",
@@ -449,7 +446,7 @@ const T = {
     officerRegistered: "Officer registered! Password sent to email.",
   },
   rw: {
-    appName:"Gusesengura Imyaka",appSub:"Akarere ka Bugesera · Rwanda · Ubuhinzi Bw'Ikoranabuhanga",
+    appName:"Sisitemu yo Gusesengura Imyaka",appSub:"Ikoranabuhanga mu Buhinzi mu Karere ka Bugesera",
     login:"Injira",register:"Kwiyandikisha nk'Umuhinzi",logout:"Sohoka",
     farmer:"Umuhinzi",officer:"Ofisiye w'Ubuhinzi",
     phone:"Telefone / ID",phoneReg:"Telefone",password:"Ijambo ry'Ibanga",confirmPw:"Emeza Ijambo ry'Ibanga",
@@ -585,8 +582,10 @@ function Sidebar({current,onNavigate,user,onLogout,lang,setLang}) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🌾</div>
-        <div className="sidebar-logo-name">{lang==="en"?"Farmer DashBoard":t.appName}</div>
+        <div className="sidebar-logo-icon" style={{background:"none", border:"1px solid rgba(255,255,255,0.15)"}}>
+          <img src="/logo.png" style={{width:"100%", height:"100%", borderRadius:"inherit", objectFit:"cover"}} alt="Logo" />
+        </div>
+        <div className="sidebar-logo-name">{t.appName}</div>
         <div className="sidebar-logo-sub">Bugesera · Rwanda</div>
       </div>
       <nav className="sidebar-nav">
@@ -610,7 +609,7 @@ function Sidebar({current,onNavigate,user,onLogout,lang,setLang}) {
       </nav>
       <div className="sidebar-footer">
         <div className="sidebar-user" onClick={onLogout} title={t.logout}>
-          <div className="sidebar-avatar"><i className="bi bi-person"></i>‍<i className="bi bi-tree"></i></div>
+          <div className="sidebar-avatar"><i className="bi bi-person-circle"></i></div>
           <div style={{flex:1,minWidth:0}}>
             <div className="sidebar-user-name">{user?.name||"User"}</div>
             <div className="sidebar-user-role"><i className="bi bi-box-arrow-right"></i> {t.logout}</div>
@@ -812,81 +811,62 @@ function AuthScreen({onLogin,lang,setLang,setSms,addNotif}) {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-left">
-        <div className="auth-left-logo">🌾</div>
-        <div className="auth-left-title">{t.appName}</div>
-        <div className="auth-left-sub">{t.appSub}</div>
-        <div className="auth-left-stats">
-          {[["15", lang==="rw"?"Segiteri":"Sectors"],["3", lang==="rw"?"Ibihingwa":"Crops"]].map(([v,l])=>(
-            <div key={l} className="auth-left-stat">
-              <div className="auth-left-stat-val">{v}</div>
-              <div className="auth-left-stat-lbl">{l}</div>
-            </div>
-          ))}
+      <div className="auth-container">
+        
+        {/* Circular Logo from reference image */}
+        <div className="system-logo-wrap">
+          <img src="/logo.png" alt="Harvest Prediction System Logo" style={{width: 84, height: 84, borderRadius: "50%", objectFit: "cover"}} />
         </div>
-      </div>
-      <div className="auth-right">
+
+        {/* Title and subtitle outside the card */}
+        <div className="auth-title-container">
+          <h1 className="auth-title-main">{t.appName}</h1>
+          <p className="auth-title-sub">{t.appSub}</p>
+        </div>
+
         <div className="auth-card">
-          <div className="lang-bar">
-            {["en","rw"].map(l=>(
-              <button key={l} className={`lang-pill ${lang===l?"act":""}`} onClick={()=>setLang(l)}>
-                {l==="en"?<><span></span> English</>:<><span></span> Kinyarwanda</>}
-              </button>
-            ))}
+          {/* Centered language toggle pill inside card */}
+          <div className="lang-toggle-container">
+            <button className={`lang-toggle-btn ${lang==="en"?"active":""}`} onClick={()=>setLang("en")}>
+              English
+            </button>
+            <span className="lang-divider">|</span>
+            <button className={`lang-toggle-btn ${lang==="rw"?"active":""}`} onClick={()=>setLang("rw")}>
+              Kinyarwanda
+            </button>
           </div>
-          <div className="auth-logo">🌾</div>
-          <div className="auth-header">
-            <h2>{t.appName}</h2>
-            <p className="auth-sub-txt">{t.appSub}</p>
-          </div>
-          
-          {/* Public registration is for Farmers only. Officers are registered by the District Admin. */}
 
           {error   && <div className="alert alert-err" style={{fontSize:13, padding:"10px", marginBottom:"16px", borderRadius:"6px"}}><i className="bi bi-exclamation-triangle"></i> {error}</div>}
           {success && <div className="alert alert-ok" style={{fontSize:13, padding:"10px", marginBottom:"16px", borderRadius:"6px", userSelect:"text"}}><i className="bi bi-check-circle"></i> {success}</div>}
 
           {mode==="login" && (
             <>
-              <div style={{textAlign:"center", marginBottom:16}}>
-                <div style={{fontSize:18, fontWeight:800, color:"var(--g900)"}}>{t.login}</div>
-              </div>
               <div className="fgrp">
-                <label className="flabel"><i className="bi bi-envelope"></i> Email Address</label>
-                <input className="academic-input" type="email" placeholder="e.g. user@example.com"
+                <label className="flabel">{lang==="en" ? "Farmer ID or Officer ID / Email" : "ID y'Umuhinzi cyangwa Ofisiye / Imeli"}</label>
+                <input className="academic-input" type="text" placeholder={lang==="en" ? "e.g. F001, A001, or email" : "Urugero: F001, A001, cyangwa imeli"}
                   value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
               </div>
-              <div className="fgrp" style={{position:"relative"}}>
-                <label className="flabel"><i className="bi bi-lock"></i> {t.password}</label>
-                <input className="academic-input" type={showPw?"text":"password"} placeholder={t.password}
+              <div className="fgrp" style={{position:"relative", marginBottom: 20}}>
+                <input className="academic-input" type={showPw?"text":"password"} placeholder={lang==="en" ? "Password" : "Ijambo ry'Ibanga"}
                   value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()}
-                  style={{paddingRight:46}}/>
-                <button onClick={()=>setShowPw(!showPw)} className="pw-toggle" style={{fontSize:16, top:36, textTransform:"none"}}>
+                  style={{paddingRight:46, marginBottom: 4}}/>
+                <button onClick={()=>setShowPw(!showPw)} className="pw-toggle" style={{textTransform:"none"}}>
                   {showPw?(<i className="bi bi-eye-slash"></i>):(<i className="bi bi-eye"></i>)}
                 </button>
+                <div style={{display: "flex", justifyContent: "flex-end", marginTop: 4}}>
+                  <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} className="auth-link-forgot">
+                    {t.forgotPw}
+                  </span>
+                </div>
               </div>
               <button className="auth-btn" onClick={handleLogin} disabled={loading||!email||!pw}>
-                {loading?<><div className="spin"/>{t.signingIn}</>:t.loginBtn}
+                {loading?<><div className="spin"/>{t.signingIn}</>:<>{lang==="en" ? "Login" : "Injira"}</>}
               </button>
-              <div style={{marginTop: 20, textAlign: "center", display: "flex", flexDirection: "column", gap: 14}}>
-                <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} className="auth-link" style={{fontSize: 13}}>
-                  {t.forgotPw}
+              <div style={{marginTop: 20, textAlign: "center"}}>
+                <span onClick={()=>{setMode("register");reset();}} className="auth-link-register">
+                  {lang === "en" ? "Don't have an account? " : "Nta konti ufite? "}
+                  <strong>{lang === "en" ? "Register" : "Iyandikishe"}</strong>
                 </span>
-                <div style={{height: "1px", background: "var(--s100)", margin: "4px 0"}}></div>
-                <span onClick={()=>{setMode("register");reset();}} className="auth-link font-bold" style={{fontSize: 14}}>
-                  {t.noAccount} <span style={{textDecoration: "underline"}}>{t.createHere}</span>
-                </span>
-              </div>
-              <div className="demo-box" onClick={()=>{setEmail("cesalie@gmail.com");setPw("harvest2024");}} style={{marginTop:24, background:"#f3f4f6"}}>
-                <div style={{fontWeight:700,marginBottom:4}}><i className="bi bi-key"></i> Farmer Demo</div>
-                <div style={{fontSize:11, color:"var(--s600)"}}><code>cesalie@gmail.com</code> | <code>harvest2024</code></div>
-              </div>
-              <div className="demo-box" onClick={()=>{setEmail("marie@sector.gov.rw");setPw("harvest2024");}} style={{marginTop:8, background:"#f3f4f6"}}>
-                <div style={{fontWeight:700,marginBottom:4}}><i className="bi bi-person-badge"></i> Sector Officer (Nyamata)</div>
-                <div style={{fontSize:11, color:"var(--s600)"}}><code>marie@sector.gov.rw</code> | <code>harvest2024</code></div>
-              </div>
-              <div className="demo-box" onClick={()=>{setEmail("pascal@district.gov.rw");setPw("harvest2024");}} style={{marginTop:8, background:"rgba(22, 163, 74, 0.1)", border:"1px solid var(--g200)"}}>
-                <div style={{fontWeight:700,marginBottom:4, color:"var(--g800)"}}><i className="bi bi-shield-lock"></i> District Admin (User 3)</div>
-                <div style={{fontSize:11, color:"var(--g700)"}}><code>pascal@district.gov.rw</code> | <code>harvest2024</code></div>
               </div>
             </>
           )}
@@ -927,7 +907,7 @@ function AuthScreen({onLogin,lang,setLang,setSms,addNotif}) {
               </button>
 
               <div style={{textAlign:"center",marginTop:16}}>
-                <span onClick={()=>{setMode("login");setError("");setSuccess("");setResetEmail("");setNewPw("");setConfPw("");}} className="auth-link">
+                <span onClick={()=>{setMode("login");setError("");setSuccess("");setResetEmail("");setNewPw("");setConfPw("");}} className="auth-link-forgot">
                   {t.backToLogin}
                 </span>
               </div>
@@ -962,7 +942,7 @@ function AuthScreen({onLogin,lang,setLang,setSms,addNotif}) {
                   value={farmHa} onChange={e=>setFarmHa(e.target.value)}/>
               </div>
 
-              <div className="fgrp" style={{display:"flex", alignItems:"center", gap:10, cursor:"pointer", userSelect:"none"}} onClick={()=>setAgreedTerms(!agreedTerms)}>
+              <div className="fgrp" style={{display:"flex", alignItems:"center", gap:10, cursor:"pointer", userSelect:"none", marginBottom:16}} onClick={()=>setAgreedTerms(!agreedTerms)}>
                 <input type="checkbox" checked={agreedTerms} onChange={e=>setAgreedTerms(e.target.checked)} style={{width:18, height:18, accentColor:"var(--g700)", cursor:"pointer"}}/>
                 <span style={{fontSize:12, color:"var(--s600)", lineHeight:1.3}}>{t.agreeTerms}</span>
               </div>
@@ -981,17 +961,36 @@ function AuthScreen({onLogin,lang,setLang,setSms,addNotif}) {
               )}
 
               <div style={{textAlign:"center",marginTop:16}}>
-                <span onClick={()=>{setMode("login");reset();}} className="auth-link">
+                <span onClick={()=>{setMode("login");reset();}} className="auth-link-forgot">
                   {t.alreadyHave} {t.signInHere}
                 </span>
               </div>
             </>
           )}
 
-          <div style={{textAlign:"center",marginTop:32,paddingTop:16,borderTop:"1px solid var(--s200)",fontSize:11,color:"var(--s500)",fontWeight:500}}>
+          <div style={{textAlign:"center",marginTop:24,paddingTop:16,borderTop:"1px solid var(--s200)",fontSize:11,color:"var(--s500)",fontWeight:500}}>
             🌾 {lang==="rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural System"} · Rwanda Polytechnic
           </div>
         </div>
+
+        {/* Demo Accounts Pill Container outside card to keep it clean */}
+        <div className="demo-accounts-container" style={{maxWidth: 420, width: "100%", margin: "20px auto 0 auto", textAlign: "center"}}>
+          <div style={{color: "rgba(255, 255, 255, 0.8)", fontSize: 13, marginBottom: 8, fontWeight: 600}}>
+            {lang === "en" ? "Demo Credentials (Click to Fill)" : "Konti zo Kugerageza (Kanda wuzure)"}
+          </div>
+          <div style={{display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center"}}>
+            <button onClick={()=>{setEmail("cesalie@gmail.com");setPw("harvest2024");}} className="demo-pill">
+              Farmer
+            </button>
+            <button onClick={()=>{setEmail("marie@sector.gov.rw");setPw("harvest2024");}} className="demo-pill">
+              Sector Officer (Nyamata)
+            </button>
+            <button onClick={()=>{setEmail("pascal@district.gov.rw");setPw("harvest2024");}} className="demo-pill">
+              District Admin
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -1056,85 +1055,154 @@ function DashboardScreen({user,onNavigate,history,lang,setLang,notifications}) {
   const unreadCount = notifications.filter(n => !n.read).length;
   const farmHa   = user.farm_size_ha  || 0;
   const farmAre  = user.farm_size_are || Math.round(farmHa*100);
+
+  // Sector Coordinates Mapping for Professional Geospatial Presentation
+  const SECTOR_COORDS = {
+    "Nyamata": "1.62° S, 30.21° E",
+    "Gashora": "2.23° S, 30.23° E",
+    "Juru": "2.12° S, 30.20° E",
+    "Ntarama": "1.58° S, 30.15° E",
+    "Mayange": "2.18° S, 30.16° E",
+    "Rweru": "2.35° S, 30.19° E",
+    "Kamabuye": "2.38° S, 30.27° E"
+  };
+  const coords = SECTOR_COORDS[user.sector] || "2.15° S, 30.20° E";
+
+  // dynamic helper to classify yields for supervisors panel
+  const getYieldBadge = (yieldKg) => {
+    if (yieldKg >= 250) {
+      return (
+        <span style={{display:"inline-flex", alignItems:"center", gap:4, background:"rgba(22, 163, 74, 0.08)", color:"#16a34a", padding:"2px 8px", borderRadius:6, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".3px", marginTop:5}}>
+          <span style={{width:5, height:5, borderRadius:"50%", background:"#16a34a"}}></span>
+          {lang === "en" ? "High Yield Expectation" : "Umusaruro Mwinshi"}
+        </span>
+      );
+    } else {
+      return (
+        <span style={{display:"inline-flex", alignItems:"center", gap:4, background:"rgba(217, 119, 6, 0.08)", color:"#d97706", padding:"2px 8px", borderRadius:6, fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:".3px", marginTop:5}}>
+          <span style={{width:5, height:5, borderRadius:"50%", background:"#d97706"}}></span>
+          {lang === "en" ? "Moderate Yield Expectation" : "Umusaruro Ugereranyije"}
+        </span>
+      );
+    }
+  };
+
   return (
     <>
-      <Topbar title={(<><i className="bi bi-tree"></i> {lang==="en"?"Farmer DashBoard":t.appName}</>)} sub="Bugesera District" onBack={null} lang={lang} setLang={setLang}
+      <Topbar title={(<><img src="/logo.png" style={{width:24,height:24,borderRadius:"50%",objectFit:"cover",marginRight:8,verticalAlign:"middle",border:"1px solid rgba(255,255,255,0.2)"}} alt="Logo" /> {t.appName}</>)} sub="Bugesera District" onBack={null} lang={lang} setLang={setLang}
         actions={
           <>
-            <button className="tb-btn" onClick={()=>onNavigate("profile")}><i className="bi bi-person"></i></button>
-            <button className="tb-btn" onClick={()=>onNavigate("notifications")} style={{position:"relative"}}>
-              <i className="bi bi-bell"></i>
+            <button className="tb-btn" style={{display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>onNavigate("profile")}><i className="bi bi-person-circle" style={{fontSize:20}}></i></button>
+            <button className="tb-btn" onClick={()=>onNavigate("notifications")} style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <i className="bi bi-bell-fill" style={{fontSize:18}}></i>
               {notifications.length > 0 && <span className="notif-badge">{notifications.length}</span>}
             </button>
           </>
         }
       />
       <div className="scroll fade-up">
-        <div className="card card-hero" style={{marginBottom:14,position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",right:16,top:"50%",transform:"translateY(-50%)",fontSize:60,opacity:.2}}><i className="bi bi-flower1"></i></div>
-          <div style={{fontSize:16,fontWeight:700,opacity:.85}}>{t.welcome}, {user.name.split(" ")[0]}! <i className="bi bi-hand-wave"></i></div>
-          <div style={{fontSize:12,opacity:.8,marginTop:3,fontFamily:"JetBrains Mono,monospace"}}>{t.farmerId}: {user.id} · <i className="bi bi-geo-alt"></i> {user.sector} Sector</div>
-          <div style={{display:"flex",gap:20,marginTop:16,paddingTop:14,borderTop:"1px solid rgba(255,255,255,.2)",flexWrap:"wrap"}}>
-            {[[`${farmHa}ha`,t.totalFarmSize],[history.length,t.predictions]].map(([v,l])=>(
-              <div key={l} style={{textAlign:"center"}}>
-                <div style={{fontWeight:800,fontSize:18}}>{v}</div>
-                <div style={{fontSize:10,opacity:.75,textTransform:"uppercase",letterSpacing:".5px"}}>{l}</div>
-              </div>
-            ))}
+        {/* Single unified welcome + farm summary card */}
+        <div className="card card-hero-elevated" style={{marginBottom:14,position:"relative",overflow:"hidden"}}>
+          <div style={{fontSize:17,fontWeight:800,opacity:.95}}>{t.welcome}, {user.name.split(" ")[0]}! <i className="bi bi-hand-wave"></i></div>
+          <div style={{fontSize:11.5,opacity:.8,marginTop:4,fontFamily:"JetBrains Mono,monospace",display:"flex",alignItems:"center",gap:6}}>
+            <i className="bi bi-geo-alt-fill" style={{color:"#f59e0b"}}></i> 
+            <span>{t.farmerId}: {user.id} · {user.sector} Sector <span style={{opacity:.65, fontSize:10.5}}>[{coords}]</span></span>
+          </div>
+          
+          <div style={{display:"flex",gap:20,marginTop:18,paddingTop:16,borderTop:"1px solid rgba(0,0,0,.08)",flexWrap:"wrap",justifyContent:"space-between"}}>
+            <div style={{textAlign:"center"}}>
+              <i className="bi bi-rulers" style={{fontSize:18,opacity:.85,marginBottom:4,display:"block"}}></i>
+              <div style={{fontWeight:800,fontSize:18}}>{farmHa}ha <span style={{fontSize:12,opacity:.8,fontWeight:500}}>({farmAre} are)</span></div>
+              <div style={{fontSize:9.5,opacity:.7,textTransform:"uppercase",letterSpacing:".5px",marginTop:2}}>{t.totalFarmSize}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <i className="bi bi-flower2" style={{fontSize:18,opacity:.85,marginBottom:4,display:"block"}}></i>
+              <div style={{fontWeight:800,fontSize:18}}>Maize, Beans, Rice</div>
+              <div style={{fontSize:9.5,opacity:.7,textTransform:"uppercase",letterSpacing:".5px",marginTop:2}}>{t.activeCrops}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <i className="bi bi-clipboard2-check" style={{fontSize:18,opacity:.85,marginBottom:4,display:"block"}}></i>
+              <div style={{fontWeight:800,fontSize:18}}>{history.length}</div>
+              <div style={{fontSize:9.5,opacity:.7,textTransform:"uppercase",letterSpacing:".5px",marginTop:2}}>{t.predictions}</div>
+            </div>
           </div>
         </div>
 
-        <div className="card card-blue" style={{marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:700,opacity:.85,marginBottom:10}}><i className="bi bi-bar-chart-line"></i> {t.farmSummary}</div>
-          {[[t.totalFarmSize,`${farmHa} ha = ${farmAre} are`],
-            [t.activeCrops,"Maize, Beans, Rice"],
-            [t.predictionsMade,String(history.length)]].map(([k,v])=>(
-            <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,.15)"}}>
-              <span style={{fontSize:13,opacity:.9}}>{k}</span>
-              <span style={{fontWeight:800,fontSize:14}}>{v}</span>
+        {/* Dashboard Actions */}
+        <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12, marginBottom:22}}>
+          {/* NEW PREDICTION - stays green */}
+          <button className="dash-btn-elevated dash-btn-elevated-primary" onClick={()=>onNavigate("predict")}>
+            <div className="icon-circle-bg" style={{background:"rgba(255,255,255,0.2)", color:"white"}}>
+              <i className="bi bi-plus-circle-fill"></i>
             </div>
-          ))}
+            <div>
+              <div style={{fontWeight:800,fontSize:10.5,letterSpacing:".5px"}}>NEW PREDICTION</div>
+              <div style={{fontSize:10.5,opacity:.9,marginTop:2}}>{lang==="en"?"Get AI Forecast":"Bona Ibisobanuro"}</div>
+            </div>
+          </button>
+          
+          {/* VIEW HISTORY */}
+          <button className="dash-btn-elevated" onClick={()=>onNavigate("history")}>
+            <div className="icon-circle-bg" style={{background:"rgba(99, 102, 241, 0.08)", color:"#6366f1"}}>
+              <i className="bi bi-clock-history"></i>
+            </div>
+            <div>
+              <div style={{fontWeight:800,fontSize:10.5,letterSpacing:".5px",color:"var(--s700)"}}>VIEW HISTORY</div>
+              <div style={{fontSize:10.5,color:"var(--s400)",marginTop:2}}>{t.predHistory}</div>
+            </div>
+          </button>
+          
+          {/* WEATHER INFO */}
+          <button className="dash-btn-elevated" onClick={()=>onNavigate("weather")}>
+            <div className="icon-circle-bg" style={{background:"rgba(14, 165, 233, 0.08)", color:"#0ea5e9"}}>
+              <i className="bi bi-cloud-sun-fill"></i>
+            </div>
+            <div>
+              <div style={{fontWeight:800,fontSize:10.5,letterSpacing:".5px",color:"var(--s700)"}}>WEATHER INFO</div>
+              <div style={{fontSize:10.5,color:"var(--s400)",marginTop:2}}>Climate conditions</div>
+            </div>
+          </button>
+          
+          {/* TIPS & ADVICE */}
+          <button className="dash-btn-elevated" onClick={()=>onNavigate("tips")}>
+            <div className="icon-circle-bg" style={{background:"rgba(245, 158, 11, 0.08)", color:"#f59e0b"}}>
+              <i className="bi bi-journal-bookmark-fill"></i>
+            </div>
+            <div>
+              <div style={{fontWeight:800,fontSize:10.5,letterSpacing:".5px",color:"var(--s700)"}}>TIPS & ADVICE</div>
+              <div style={{fontSize:10.5,color:"var(--s400)",marginTop:2}}>Farming guidance</div>
+            </div>
+          </button>
         </div>
 
-        {/* Dashboard Actions - Expanded to 4 columns for wide layout */}
-        <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12, marginBottom:18}}>
-          {[[(<i className="bi bi-tree"></i>),"NEW PREDICTION",lang==="en"?"Get Harvest Prediction":"Bona Ibisobanuro","card-hero","predict"],
-            [(<i className="bi bi-graph-up"></i>),"VIEW HISTORY",t.predHistory,"card-purple","history"],
-            [(<i className="bi bi-cloud-sun"></i>),"WEATHER INFO","Climate conditions","card-blue","weather"],
-            [(<i className="bi bi-book"></i>),"TIPS & ADVICE","Farming guidance","card-amber","tips"]].map(([icon,label,desc,cls,act])=>(
-            <button key={act} className={`card ${cls} btn`}
-              style={{flexDirection:"column",gap:8,alignItems:"flex-start",textAlign:"left",cursor:"pointer",padding:16}}
-              onClick={()=>onNavigate(act)}>
-              <span style={{fontSize:28}}>{icon}</span>
-              <div>
-                <div style={{fontWeight:800,fontSize:11,letterSpacing:".5px"}}>{label}</div>
-                <div style={{fontSize:11,opacity:.85,marginTop:2}}>{desc}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="sec-hd"><i className="bi bi-clipboard-data"></i> {t.recentPredictions}</div>
+        {/* Recent Predictions Section */}
+        <div className="sec-hd" style={{marginBottom:14}}><i className="bi bi-award-fill" style={{color:"var(--g600)"}}></i> {t.recentPredictions}</div>
         {history.length===0 && (
-          <div style={{textAlign:"center",padding:"20px",color:"var(--s400)",fontSize:13}}>
+          <div style={{textAlign:"center",padding:"26px",color:"var(--s400)",fontSize:13,background:"white",borderRadius:16,border:"1px solid var(--s200)"}}>
             No predictions yet. Make your first prediction!
           </div>
         )}
+        
         {history.slice(0,3).map((p,i)=>(
-          <div key={i} className="hitem" onClick={()=>{ if(onResult){onResult(p);} else onNavigate("history"); }}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <div className="hitem-icon">
-                <CropIcon name={p.crop} style={{fontSize:24}} />
-              </div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:14}}>{p.crop}</div>
-                <div style={{fontSize:12,color:"var(--s500)",marginTop:2}}>
-                  <i className="bi bi-calendar"></i> {fmtDate(p.timestamp)} · {p.sector}
+          <div key={i} className="hitem-elevated" onClick={()=>{ if(onResult){onResult(p);} else onNavigate("history"); }}>
+            <div style={{display:"flex",alignItems:"center",gap:16,justifyContent:"space-between"}}>
+              <div style={{flex:1, textAlign:"left"}}>
+                <div style={{fontWeight:800,fontSize:15,color:"var(--s900)",display:"flex",alignItems:"center",gap:6}}>
+                  {p.crop}
+                  <span style={{fontWeight:500, fontSize:11, color:"var(--s400)", fontFamily:"monospace"}}>({p.id})</span>
                 </div>
+                <div style={{fontSize:12,color:"var(--s500)",marginTop:3,display:"flex",alignItems:"center",gap:8}}>
+                  <span><i className="bi bi-calendar3"></i> {fmtDate(p.timestamp)}</span>
+                  <span>·</span>
+                  <span><i className="bi bi-geo-alt"></i> {p.sector}</span>
+                </div>
+                {/* Dynamically generated AI Yield Classification Badge */}
+                <div>{getYieldBadge(p.yield_per_are_kg)}</div>
               </div>
-              <div>
-                <div className="hitem-yield">{p.yield_per_are_kg}<span style={{fontSize:11}}>kg</span></div>
-                <div style={{fontSize:10,color:"var(--s400)",textAlign:"right"}}>/are</div>
+              
+              <div style={{textAlign:"right", flexShrink:0}}>
+                <div style={{fontFamily:"'JetBrains Mono', monospace",fontSize:22,fontWeight:800,color:"var(--g700)"}}>{p.yield_per_are_kg}<span style={{fontSize:12, fontWeight:500}}> kg</span></div>
+                <div style={{fontSize:10.5,color:"var(--s500)",fontWeight:600}}>/are <span style={{color:"var(--s400)",fontWeight:400}}>({Math.round(p.yield_per_are_kg * 100)} kg/Ha)</span></div>
               </div>
             </div>
           </div>
@@ -1143,6 +1211,7 @@ function DashboardScreen({user,onNavigate,history,lang,setLang,notifications}) {
     </>
   );
 }
+
 
 // ── PREDICT ───────────────────────────────────────────────────────────────────
 function PredictScreen({user,onNavigate,onResult,onSave,history=[],lang,setLang}) {
@@ -1296,11 +1365,6 @@ function PredictScreen({user,onNavigate,onResult,onSave,history=[],lang,setLang}
               <div className="crop-grid">
                 {CROPS.map(c=>(
                   <button key={c} className={`crop-btn ${form.crop===c?"sel":""}`} onClick={()=>set("crop",c)}>
-                    <div className="crop-btn-icon">
-                      {CROP_ICON[c]?.startsWith('/icons/') 
-                        ? <img src={CROP_ICON[c]} alt={c} /> 
-                        : <i className={CROP_ICON[c]}></i>}
-                    </div>
                     <span className="crop-btn-name">{c}</span>
                   </button>
                 ))}
@@ -1435,14 +1499,14 @@ function PredictScreen({user,onNavigate,onResult,onSave,history=[],lang,setLang}
             <div className="fgrp">
               <label className="flabel"><i className="bi bi-arrow-repeat"></i> {lang==="en"?"Previous Crop":"Igihingwa Cyahinzwe"}</label>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {[["Beans",(<CropIcon name="Beans"/>)],["Maize",(<CropIcon name="Maize"/>)],["Rice",(<CropIcon name="Rice"/>)],["Fallow",(<i className="bi bi-flower3"></i>)],["Cassava",(<i className="bi bi-circle"></i>)]].map(([pc,icon])=>(
+                {["Beans","Maize","Rice","Fallow","Cassava"].map(pc=>(
                   <button key={pc} onClick={()=>set("previousCrop",pc)}
                     style={{padding:"8px 12px",borderRadius:10,border:`2px solid ${form.previousCrop===pc?"var(--g600)":"var(--s200)"}`,
                       background:form.previousCrop===pc?"var(--g100)":"white",cursor:"pointer",
                       display:"flex",alignItems:"center",gap:8,
                       fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:700,
                       color:form.previousCrop===pc?"var(--g800)":"var(--s600)"}}>
-                    {icon} {pc}
+                    {pc}
                   </button>
                 ))}
               </div>
@@ -1526,7 +1590,7 @@ function PredictScreen({user,onNavigate,onResult,onSave,history=[],lang,setLang}
               {/* Group 1: Crop & Land - Expanded to 4 columns */}
               <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"16px", marginBottom:18}}>
                 {[
-                  [(<CropIcon name={form.crop} />), t.cropType,       form.crop],
+                  [(<i className="bi bi-tag"></i>), t.cropType,       form.crop],
                   [(<i className="bi bi-rulers"></i>), t.areaPlantedHa.replace(" *",""), `${form.areaPlantedHa} ha`],
                   [(<i className="bi bi-geo-alt"></i>), t.location,       form.sector],
                   [(<i className="bi bi-calendar-week"></i>), t.plantingDate.replace(" *",""), form.plantingDate||"–"],
@@ -1703,10 +1767,7 @@ function ResultScreen({result,onNavigate,onSave,history=[],lang,setLang}) {
         <div className="result-hero">
           <div style={{fontSize:13,opacity:.75,marginBottom:4}}>{t.expectedHarvest}</div>
           <div style={{fontSize:14,fontWeight:700,marginBottom:10}}>{t.predictionComplete}</div>
-          <div style={{fontSize:48,marginBottom:12}}>
-            <CropIcon name={result.crop} style={{fontSize:48}} />
-          </div>
-          <div className="result-big">{result.yield_range}</div>
+          <div className="result-big" style={{marginTop:12}}>{result.yield_range}</div>
           <div className="result-unit">{t.perAreEst}</div>
           <div className="result-meta">
             <div className="result-meta-item">
@@ -1727,7 +1788,7 @@ function ResultScreen({result,onNavigate,onSave,history=[],lang,setLang}) {
         {/* Key Numbers */}
         <div className="stat-grid">
           {[
-            [(<CropIcon name={result.crop} />),`${result.yield_per_are_kg} kg/are`,"Yield per Are"],
+            [(<i className="bi bi-graph-up"></i>),`${result.yield_per_are_kg} kg/are`,"Yield per Are"],
             [(<i className="bi bi-house-fill"></i>),`${result.yield_per_ha_kg} kg/ha`,"Yield per Ha"],
             [(<i className="bi bi-box-seam"></i>),`${result.total_yield_kg} kg`,"Total Harvest"],
             [(<i className="bi bi-rulers"></i>),`${result.area_planted_are||result.farm_size_are}are`,"Area Planted"],
@@ -2500,7 +2561,7 @@ function FarmerDetailView({farmerId, onBack, lang, setLang, setSelectedPred, off
             <tbody>
               {preds.map((p, i) => (
                 <tr key={i} style={{borderTop:"1px solid var(--s100)", cursor:"pointer"}} onClick={() => setSelectedPred && setSelectedPred(p)}>
-                  <td style={{padding:"12px 14px", fontWeight:700}}>{CROP_ICON[p.crop_type] || (<i className="bi bi-flower2"></i>)} {p.crop_type}</td>
+                  <td style={{padding:"12px 14px", fontWeight:700}}>{p.crop_type}</td>
                   <td style={{padding:"12px 14px", fontFamily:"JetBrains Mono"}}>{parseFloat(p.yield_per_are_kg).toFixed(1)}</td>
                   <td style={{padding:"12px 14px", color:"var(--s500)"}}>{new Date(p.created_at).toLocaleDateString()}</td>
                   <td style={{padding:"12px 14px"}}>
@@ -3036,7 +3097,7 @@ function OfficerApp({user,onLogout,lang,setLang}) {
                         const col = {Maize:"#f59e0b",Beans:"#22c55e",Rice:"#8b5cf6"}[crop]||"#22c55e";
                         return (
                           <div key={crop} className="bar-row">
-                            <div className="bar-lbl">{CROP_ICON[crop] ? <i className={"bi " + CROP_ICON[crop]}></i> : null} {crop}</div>
+                            <div className="bar-lbl">{crop}</div>
                             <div className="bar-track"><div className="bar-fill" style={{width:`${(val/50)*100}%`,background:col}}/></div>
                             <div className="bar-val">{val?.toFixed?.(1)||val} kg/a</div>
                           </div>
@@ -3049,7 +3110,6 @@ function OfficerApp({user,onLogout,lang,setLang}) {
                         {dashData.recent_preds.slice(0,5).map((p,i)=>(
                           <div key={i} className="farmer-row" style={{cursor:"pointer"}} onClick={() => setSelectedPred(p)}>
                             <div style={{display:"flex",alignItems:"center",gap:10}}>
-                              <div className="avatar-sm">{CROP_ICON[p.crop] ? <i className={"bi " + CROP_ICON[p.crop]}></i> : <i className="bi bi-flower1"></i>}</div>
                               <div>
                                 <div style={{fontWeight:700,fontSize:13}}>{p.farmer_id} — {p.crop}</div>
                                 <div style={{fontSize:11,color:"var(--s500)"}}>{p.sector} · {fmtDate(p.timestamp || p.created_at)}</div>
@@ -3180,7 +3240,6 @@ function OfficerApp({user,onLogout,lang,setLang}) {
                             sectorData.predictions.map(p => (
                                <div key={p.prediction_id} className="hitem" style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", cursor:"pointer"}} onClick={() => setSelectedPred(p)}>
                                   <div style={{display:"flex", alignItems:"center", gap:12}}>
-                                     <div className="avatar-sm">{CROP_ICON[p.crop_type] ? <i className={"bi " + CROP_ICON[p.crop_type]}></i> : <i className="bi bi-flower1"></i>}</div>
                                      <div>
                                         <div style={{fontWeight:700, fontSize:13}}>{p.farmer_name} — {p.crop_type}</div>
                                         <div style={{fontSize:11, color:"var(--s500)"}}>{fmtDate(p.created_at)}</div>
@@ -3515,8 +3574,7 @@ html,body{height:100%;background:#f0fdf4;font-family:'Inter',sans-serif;-webkit-
 .toggle-opt{flex:1;padding:11px 8px;border:1.5px solid var(--s200);border-radius:var(--radius-xs);background:white;cursor:pointer;text-align:center;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--s600);transition:all .2s;}
 .toggle-opt:hover{border-color:var(--g400)}
 .toggle-opt.sel{border-color:var(--g600);background:var(--g100);color:var(--g800)}
-.auth-wrap{min-height:100vh;background:url('/hero_bg.png') center/cover no-repeat;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;}
-.auth-wrap::before{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(15,76,34,0.4) 0%,rgba(34,161,86,0.2) 100%);}
+
 .auth-card{background:rgba(255,255,255,0.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.3);border-radius:28px;padding:32px 26px;width:100%;max-width:380px;box-shadow:0 30px 80px rgba(0,0,0,0.35);max-height:92vh;overflow-y:auto;position:relative;z-index:1;}
 .auth-card::-webkit-scrollbar{display:none}
 .auth-logo{width:70px;height:70px;background:var(--g100);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 18px;color:var(--g700);box-shadow:0 8px 24px rgba(22,163,74,.15)}
@@ -3579,6 +3637,8 @@ html,body{height:100%;background:#f0fdf4;font-family:'Inter',sans-serif;-webkit-
 .sms-time{font-size:10px;color:var(--s400);font-weight:600}
 .sms-sender{font-size:14px;font-weight:800;color:var(--s900);margin-bottom:2px}
 .sms-body{font-size:13px;color:var(--s700);line-height:1.45}
+.fade-up{animation:fadeUp .45s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 `;
 
 function GlobalStyle() {
@@ -3600,6 +3660,74 @@ function GlobalStyle() {
       @media (max-width: 900px) {
         .sidebar { display: none !important; }
         .main-content { margin-left: 0 !important; width: 100% !important; padding-bottom: 70px; }
+      }
+      
+      /* Premium micro-interactions & upgraded styling */
+      .card-hero-elevated {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+        box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.05) !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 20px !important;
+        padding: 24px 22px !important;
+        color: #0f172a !important;
+      }
+      .dash-btn-elevated {
+        flex-direction: column !important;
+        gap: 10px !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        cursor: pointer !important;
+        padding: 18px 16px !important;
+        border-radius: 16px !important;
+        display: flex !important;
+        border: 1.5px solid var(--s200) !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03) !important;
+        background: white !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        width: 100% !important;
+      }
+      .dash-btn-elevated:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 12px 24px -6px rgba(0,0,0,0.08) !important;
+        border-color: var(--g400) !important;
+      }
+      .dash-btn-elevated-primary {
+        background: linear-gradient(135deg, #15803d, #22c55e) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 6px 18px rgba(22, 128, 61, 0.2) !important;
+      }
+      .dash-btn-elevated-primary:hover {
+        background: linear-gradient(135deg, #166534, #15803d) !important;
+        box-shadow: 0 12px 24px rgba(22, 128, 61, 0.3) !important;
+      }
+      .hitem-elevated {
+        background: white !important;
+        border: 1px solid var(--s200) !important;
+        border-left: 4.5px solid var(--g600) !important;
+        border-radius: 14px !important;
+        padding: 16px 18px !important;
+        margin-bottom: 12px !important;
+        cursor: pointer !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        display: block !important;
+        width: 100% !important;
+      }
+      .hitem-elevated:hover {
+        box-shadow: 0 8px 20px -4px rgba(0,0,0,0.08) !important;
+        transform: translateX(4px) !important;
+        border-color: var(--s300) !important;
+        border-left-color: var(--g500) !important;
+      }
+      .icon-circle-bg {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 4px;
       }
     `;
     document.head.appendChild(tag);
