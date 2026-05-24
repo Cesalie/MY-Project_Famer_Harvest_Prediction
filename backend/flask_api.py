@@ -22,7 +22,7 @@ try:
         get_all_users, toggle_user_status, get_system_settings, update_system_settings,
         get_sector_full_details
     )
-    DB_ENABLED = init_db()  # Call init_db to check actual connectivity
+    DB_ENABLED = init_db()  # Call init_db to check actual connectivity (reloaded)
 except ImportError as e:
     DB_ENABLED = False
     print("[exclamation-triangle]️  database.py not found — using in-memory store")
@@ -1700,7 +1700,7 @@ def admin_sector_details(sector_id):
 if DB_ENABLED:
     try:
         init_db()
-        print("  [check-circle] SQLite database ready (bugesera.db)")
+        print("  [check-circle] MySQL database ready (bugesera_harvest)")
     except Exception as e:
         print(f"  [exclamation-triangle]️  DB init error: {e} — falling back to in-memory")
         DB_ENABLED = False

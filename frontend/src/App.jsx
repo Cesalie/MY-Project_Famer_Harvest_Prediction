@@ -3102,7 +3102,7 @@ function OfficerApp({user,onLogout,lang,setLang}) {
 
                     {underperforming.length > 0 && (
                       <>
-                        <div className="sec-hd" style={{marginTop:24, color:"var(--red)"}}><i className="bi bi-flag-fill"></i> Underperforming Farms (Yield Gap > 20%)</div>
+                        <div className="sec-hd" style={{marginTop:24, color:"var(--red)"}}><i className="bi bi-flag-fill"></i> Underperforming Farms (Yield Gap &gt; 20%)</div>
                         <div className="card" style={{padding:0, overflow:"hidden", borderColor:"var(--red-l)"}}>
                           {underperforming.map((f, i) => (
                             <div key={i} className="hitem" style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 16px", borderLeft:"4px solid var(--red)", background: i%2===0?"white":"var(--red-l)", cursor:"pointer"}}
