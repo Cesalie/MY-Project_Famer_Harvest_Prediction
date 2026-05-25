@@ -37,14 +37,104 @@ import uuid
 from datetime import datetime
 import base64
 from email.mime.text import MIMEText
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formataddr
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+# ── Email configuration ───────────────────────────────────────────────────────
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+SMTP_USER = "tuyisengeelysee1@gmail.com"
+SMTP_PASS = "vobk yjcw ajsa jrpw"
+CONTACT_TO_EMAIL = "tuyisengeelysee1@gmail.com"
+
+def send_email(to_email, subject, body_html, body_text=None):
+    """Sends an email using SMTP with the provided configuration."""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = formataddr(("Bugesera Harvest System", SMTP_USER))
+        msg['To'] = to_email
+
+        if not body_text:
+            body_text = "Please enable HTML to view this email."
+        
+        part1 = MIMEText(body_text, 'plain')
+        part2 = MIMEText(body_html, 'html')
+
+        msg.attach(part1)
+        msg.attach(part2)
+
+        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(SMTP_USER, to_email, msg.as_string())
+        
+        print(f"  [check-circle] Email successfully sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"  [x-circle] Failed to send email to {to_email}: {e}")
+        return False
+
+def get_registration_html(name, email, password, role):
+    role_name = "Farmer" if role == 'farmer' else "Agricultural Officer"
+    return f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #2e7d32; margin-bottom: 5px;">Bugesera Harvest System</h1>
+            <p style="color: #666; font-size: 14px;">Optimizing Agriculture in Bugesera District</p>
+        </div>
+        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="color: #2e7d32; margin-top: 0;">Welcome, {name}!</h2>
+            <p>Your registration as a <strong>{role_name}</strong> has been completed successfully. You can now access the system to manage your farm and predict harvests.</p>
+            <div style="background-color: #fff; padding: 15px; border-left: 4px solid #2e7d32; margin: 20px 0;">
+                <p style="margin: 0;"><strong>Your Credentials:</strong></p>
+                <p style="margin: 5px 0;"><strong>Email:</strong> {email}</p>
+                <p style="margin: 5px 0;"><strong>Password:</strong> {password}</p>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="http://localhost:5173/" style="background-color: #2e7d32; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Access System Now</a>
+            </div>
+        </div>
+        <div style="font-size: 12px; color: #888; text-align: center; margin-top: 30px;">
+            <p>If you did not register for this account, please contact us at {CONTACT_TO_EMAIL}</p>
+            <p>&copy; 2024 Bugesera Harvest Prediction System. All rights reserved.</p>
+        </div>
+    </body>
+    </html>
+    """
+
+def get_otp_html(name, otp, purpose="password reset"):
+    return f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #2e7d32; margin-bottom: 5px;">Bugesera Harvest System</h1>
+        </div>
+        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="color: #2e7d32; margin-top: 0;">Verification Code</h2>
+            <p>Hello {name},</p>
+            <p>You have requested a <strong>{purpose}</strong>. Please use the following One-Time Password (OTP) to complete the process:</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2e7d32; background-color: #fff; padding: 10px 20px; border: 1px dashed #2e7d32; border-radius: 5px;">{otp}</span>
+            </div>
+            <p style="color: #666; font-size: 14px;">This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
+        </div>
+        <div style="font-size: 12px; color: #888; text-align: center; margin-top: 30px;">
+            <p>&copy; 2024 Bugesera Harvest Prediction System. All rights reserved.</p>
+        </div>
+    </body>
+    </html>
+    """
+
+# OTP storage: {email: {"otp": "123456", "expires": datetime}}
+_otps = {}
+
+def generate_otp():
+    import random
+    return "".join([str(random.randint(0, 9)) for _ in range(6)])
 
 # ── App setup ──────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -488,65 +578,194 @@ def home():
     })
 
 
-def get_gmail_service():
-    """Build and return a Gmail API service object."""
-    creds = None
-    # The file token.json stores the user's access and refresh tokens.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not os.path.exists('credentials.json'):
-                print("[exclamation-triangle] ERROR: credentials.json not found! Gmail functionality disabled.")
-                return None
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+# ── OTP and Password Routes ──────────────────────────────────────────────────
+
+@app.route('/api/forgot-password/request', methods=['POST'])
+def forgot_password_request():
+    d = request.get_json() or {}
+    email = d.get('email', '').strip().lower()
+    role = d.get('role', 'farmer')
+
+    if not email:
+        return jsonify({'error': 'Email is required.'}), 400
+
+    user = None
+    if DB_ENABLED:
+        try:
+            user = get_user_by_email(email)
+        except Exception as e:
+            print(f"DB error in forgot password request: {e}")
     
-    try:
-        service = build('gmail', 'v1', credentials=creds)
-        return service
-    except Exception as e:
-        print(f"[x-circle] Failed to build Gmail service: {e}")
-        return None
+    # Fallback in-memory
+    if not user:
+        user = next((u for u in _users.values() if u.get('email', '').lower() == email and u['role'] == role), None)
 
-def simulate_email_send(to_email, subject, body):
-    """Sends an actual email using the Gmail API, falling back to console log if service is unavailable."""
-    service = get_gmail_service()
-    if not service:
-        print("\n" + "="*60)
-        print(f"📧 [SIMULATION FALLBACK] EMAIL TO: {to_email}")
-        print(f"📝 SUBJECT: {subject}")
-        print(f"📖 BODY:\n{body}")
-        print("="*60 + "\n")
-        return False
+    if not user:
+        return jsonify({'error': 'No account found with this email address.'}), 404
 
-    try:
-        # Create MIME message
-        message = MIMEText(body)
-        message['to'] = to_email
-        message['subject'] = subject
-        
-        # Encode to base64
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-        
-        # Send via API
-        send_request = service.users().messages().send(
-            userId="me",
-            body={'raw': raw_message}
-        ).execute()
-        
-        print(f"  [check-circle] Real email successfully sent to {to_email} (ID: {send_request['id']})")
-        return True
-    except HttpError as error:
-        print(f"  [x-circle] An error occurred during Gmail API send: {error}")
-        return False
+    otp = generate_otp()
+    from datetime import datetime, timedelta
+    _otps[email] = {
+        'otp': otp,
+        'expires': datetime.now() + timedelta(minutes=10),
+        'user_id': user.get('id') or user.get('farmer_id') or user.get('officer_id'),
+        'role': role
+    }
 
+    html_content = get_otp_html(user.get('full_name') or user.get('name', 'User'), otp, "password reset")
+    if send_email(email, "Your Password Reset OTP", html_content):
+        return jsonify({'success': True, 'message': 'OTP sent to your email.'})
+    else:
+        return jsonify({'error': 'Failed to send OTP. Please try again later.'}), 500
+
+@app.route('/api/forgot-password/verify', methods=['POST'])
+def forgot_password_verify():
+    d = request.get_json() or {}
+    email = d.get('email', '').strip().lower()
+    otp = d.get('otp', '').strip()
+    new_pw = d.get('new_password', '').strip()
+
+    if not all([email, otp, new_pw]):
+        return jsonify({'error': 'Email, OTP, and new password are required.'}), 400
+
+    otp_data = _otps.get(email)
+    if not otp_data:
+        return jsonify({'error': 'No OTP request found for this email.'}), 400
+
+    from datetime import datetime
+    if datetime.now() > otp_data['expires']:
+        del _otps[email]
+        return jsonify({'error': 'OTP has expired.'}), 400
+
+    if otp_data['otp'] != otp:
+        return jsonify({'error': 'Invalid OTP.'}), 400
+
+    # OTP is valid, reset password
+    uid = otp_data['user_id']
+    role = otp_data['role']
+
+    if DB_ENABLED:
+        try:
+            from database import update_user_password
+            if update_user_password(uid, role, new_pw):
+                del _otps[email]
+                return jsonify({'success': True, 'message': 'Password reset successfully.'})
+        except Exception as e:
+            print(f"DB error in forgot password verify: {e}")
+
+    # Fallback in-memory
+    user = _users.get(uid)
+    if user:
+        user['password'] = new_pw
+        del _otps[email]
+        return jsonify({'success': True, 'message': 'Password reset successfully.'})
+
+    return jsonify({'error': 'Failed to reset password. User not found or database update failed.'}), 400
+
+@app.route('/api/change-password/request-otp', methods=['POST'])
+def change_password_request_otp():
+    d = request.get_json() or {}
+    uid = d.get('user_id')
+    role = d.get('role', 'farmer')
+    old_pw = d.get('old_password', '').strip()
+
+    if not all([uid, old_pw]):
+        return jsonify({'error': 'User ID and current password are required.'}), 400
+
+    user = None
+    if DB_ENABLED:
+        try:
+            from database import verify_password, get_farmer, get_officer
+            if verify_password(uid, role, old_pw):
+                user = get_farmer(uid) if role == 'farmer' else get_officer(uid)
+            else:
+                return jsonify({'error': 'Current password is incorrect.'}), 401
+        except Exception as e:
+            print(f"DB error in change password request: {e}")
+
+    # Fallback in-memory
+    if not user:
+        mem_user = _users.get(uid)
+        if mem_user and mem_user.get('password') == old_pw:
+            user = mem_user
+        else:
+            return jsonify({'error': 'Current password is incorrect.'}), 401
+
+    email = user.get('email')
+    if not email:
+        return jsonify({'error': 'User email not found.'}), 400
+
+    otp = generate_otp()
+    from datetime import datetime, timedelta
+    _otps[email] = {
+        'otp': otp,
+        'expires': datetime.now() + timedelta(minutes=10),
+        'user_id': uid,
+        'role': role
+    }
+
+    html_content = get_otp_html(user.get('full_name') or user.get('name', 'User'), otp, "password change")
+    if send_email(email, "Your Password Change OTP", html_content):
+        return jsonify({'success': True, 'message': 'OTP sent to your email.'})
+    else:
+        return jsonify({'error': 'Failed to send OTP. Please try again later.'}), 500
+
+@app.route('/api/change-password/verify', methods=['POST'])
+def change_password_verify():
+    d = request.get_json() or {}
+    uid = d.get('user_id')
+    role = d.get('role', 'farmer')
+    otp = d.get('otp', '').strip()
+    new_pw = d.get('new_password', '').strip()
+
+    if not all([uid, otp, new_pw]):
+        return jsonify({'error': 'All fields are required.'}), 400
+
+    user = None
+    if DB_ENABLED:
+        try:
+            from database import get_farmer, get_officer
+            user = get_farmer(uid) if role == 'farmer' else get_officer(uid)
+        except Exception as e:
+            print(f"DB error in change password verify: {e}")
+    
+    if not user:
+        user = _users.get(uid)
+    
+    if not user:
+        return jsonify({'error': 'User not found.'}), 404
+
+    email = user.get('email')
+    otp_data = _otps.get(email)
+
+    if not otp_data or otp_data['user_id'] != uid:
+        return jsonify({'error': 'No OTP request found.'}), 400
+
+    from datetime import datetime
+    if datetime.now() > otp_data['expires']:
+        del _otps[email]
+        return jsonify({'error': 'OTP has expired.'}), 400
+
+    if otp_data['otp'] != otp:
+        return jsonify({'error': 'Invalid OTP.'}), 400
+
+    # OTP is valid, update password
+    if DB_ENABLED:
+        try:
+            from database import update_user_password
+            if update_user_password(uid, role, new_pw):
+                del _otps[email]
+                return jsonify({'success': True, 'message': 'Password updated successfully.'})
+        except Exception as e:
+            print(f"DB error in update password: {e}")
+
+    # Fallback in-memory
+    if uid in _users:
+        _users[uid]['password'] = new_pw
+        del _otps[email]
+        return jsonify({'success': True, 'message': 'Password updated successfully.'})
+
+    return jsonify({'error': 'Failed to update password. User not found or database update failed.'}), 400
 
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -724,15 +943,13 @@ def register():
                     # 2. Create Welcome Notification (Advice)
                     generated_pw = user.get('generated_password', 'harvest2024')
                     welcome_subject = "Welcome to Bugesera Harvest Predictor!" if d.get('lang') != 'rw' else "Murakaza neza muri Sisitemu y'Imyaka!"
-                    welcome_msg = (
-                        f"Hello {user['full_name']},\n\n"
-                        f"Your account has been created successfully.\n"
-                        f"Farmer ID: {user['farmer_id']}\n"
-                        f"Default Password: {generated_pw}\n\n"
-                        f"Please login and change your password for better security."
-                    )
                     
-                    # Save to DB
+                    # 3. Send Beautiful Email
+                    html_content = get_registration_html(user['full_name'], user['email'], generated_pw, 'farmer')
+                    send_email(user['email'], welcome_subject, html_content)
+                    
+                    # Save notification to DB for in-app viewing
+                    welcome_msg = f"Hello {user['full_name']}, your account has been created. ID: {user['farmer_id']}, PW: {generated_pw}"
                     save_advice('A001', {
                         'farmer_id': user['farmer_id'],
                         'subject': welcome_subject,
@@ -740,33 +957,18 @@ def register():
                         'advice_type': 'system'
                     })
                     
-                    # 3. Simulate Email Send
-                    simulate_email_send(user['email'], welcome_subject, welcome_msg)
-                    
                 except Exception as fe:
                     print(f"Initial farm/notification creation failed: {fe}")
             else:
                 user = register_officer(d)
-                # 4. Simulate Email Send for Officers
+                # 4. Send Beautiful Email for Officers
                 try:
                     gen_pw = user.get('generated_password', 'harvest2024')
                     officer_subject = "Your Agriculture Officer Account" if d.get('lang') != 'rw' else "Konti yawe ya Ofisiye w'Ubuhinzi"
-                    officer_msg = (
-                        f"Hello {user.get('full_name') or user.get('name')},\n\n"
-                        f"Your officer account has been created by the District Level Admin.\n"
-                        f"Officer ID: {user['officer_id']}\n"
-                        f"Temporary Password: {gen_pw}\n\n"
-                        f"Please login and update your password immediately for security."
-                        if d.get('lang') != 'rw' else
-                        f"Muraho {user.get('full_name') or user.get('name')},\n\n"
-                        f"Konti yawe ya Ofisiye yafunguwe n'ubuyobozi ku rwego rw'Akarere.\n"
-                        f"ID yawe: {user['officer_id']}\n"
-                        f"Ijambo ry'ibanga ry'agateganyo: {gen_pw}\n\n"
-                        f"Nyamuneka winjire muri sisitemu uhindure ijambo ry'ibanga ryawe kugirango konti yawe ibe itekanye."
-                    )
-                    simulate_email_send(user['email'], officer_subject, officer_msg)
+                    html_content = get_registration_html(user.get('full_name') or user.get('name'), user['email'], gen_pw, user['role'])
+                    send_email(user['email'], officer_subject, html_content)
                 except Exception as oe:
-                    print(f"Officer email simulation failed: {oe}")
+                    print(f"Officer email send failed: {oe}")
                 
             return jsonify({'success': True, 'user': user, 'generated_password': user.get('generated_password')}), 201
         except Exception as e:
@@ -1408,8 +1610,7 @@ def send_advice_route():
         
         advice_id = save_advice(officer_id, d)
         
-        # --- EMAIL SIMULATION FOR BROADCASTS ---
-        # Fetch farmers in the target group (or all) and send them emails
+        # --- EMAIL FOR BROADCASTS ---
         if DB_ENABLED:
             try:
                 from database import get_db
@@ -1432,10 +1633,12 @@ def send_advice_route():
                         print(f"  [broadcast] Sending advice to {len(recipients)} farmers...")
                         for r in recipients:
                             subject = f"Agriculture Advice: {d.get('subject', 'Important Update')}"
-                            body = f"Hello {r['full_name']},\n\n{d.get('message')}\n\nBest regards,\nAgri Officer"
-                            simulate_email_send(r['email'], subject, body)
+                            body_text = f"Hello {r['full_name']},\n\n{d.get('message')}\n\nBest regards,\nAgri Officer"
+                            # Simple HTML wrapper for advice
+                            body_html = f"<h2>Agriculture Advice</h2><p>Hello {r['full_name']},</p><p>{d.get('message')}</p><br><p>Best regards,<br>Agri Officer</p>"
+                            send_email(r['email'], subject, body_html, body_text)
             except Exception as e:
-                print(f"Broadcast email simulation error: {e}")
+                print(f"Broadcast email error: {e}")
         
         return jsonify({'success': True, 'advice_id': advice_id})
     except Exception as e:

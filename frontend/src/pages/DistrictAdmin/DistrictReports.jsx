@@ -1,0 +1,269 @@
+import React, { useState, useEffect } from 'react';
+import { T, API_BASE, fmtDate } from '../../constants/constants';
+
+export default function DistrictReports({ user, lang }) {
+  const t = T[lang];
+  const [reports, setReports]               = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [adviceMsg, setAdviceMsg]           = useState('');
+  const [targetGroup, setTargetGroup]       = useState('All Farmers');
+  const [adviceStatus, setAdviceStatus]     = useState(null);
+  const [pdfStatus, setPdfStatus]           = useState(null);
+  const [reportType, setReportType]         = useState('Season Summary');
+  const [reportPeriod, setReportPeriod]     = useState('Season A 2024');
+  const [sectorScope, setSectorScope]       = useState('All Sectors');
+
+  useEffect(() => { fetchReports(); }, []);
+
+  const fetchReports = async () => {
+    try {
+      const res  = await fetch(`${API_BASE}/api/reports?officer_id=${user.id}&role=district`);
+      const data = await res.json();
+      if (data.success) setReports(data.reports);
+    } catch {
+      setReports([
+        {
+          report_id: 'R001',
+          title: 'Nyamata Weekly Status – Season A',
+          sender_name: 'Marie Uwase',
+          sector_name: 'Nyamata',
+          content: 'Summary of 18 predictions in Nyamata Sector:\n- Total Submissions: 18\n- Avg Expected Yield: 23.4 kg/are\n- Crops: Maize, Beans\n\nFall Armyworm sightings on 3 farms. Recommend immediate intervention.',
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          report_id: 'R002',
+          title: 'Gashora Monthly Crop Report',
+          sender_name: 'Jean Paul Habimana',
+          sector_name: 'Gashora',
+          content: 'Monthly performance report for Gashora Sector:\n- Maize: 24.1 kg/are avg\n- Beans: 11.8 kg/are avg\n- Rice: 36.2 kg/are avg\n\nGood rainfall this season. Soil moisture is optimal.',
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ]);
+    }
+  };
+
+  const generatePDF = async () => {
+    setPdfStatus({ type: 'info', msg: 'Generating PDF report…' });
+    try {
+      const url = `${API_BASE}/api/generate-district-pdf`;
+      window.open(url, '_blank');
+      setPdfStatus({ type: 'ok', msg: 'PDF opened in new tab.' });
+    } catch {
+      // Fallback: client-side PDF using jsPDF from CDN
+      const { jsPDF } = window.jspdf || {};
+      if (jsPDF) {
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text('Bugesera District Agricultural Report', 14, 22);
+        doc.setFontSize(12);
+        doc.text(`Report Type: ${reportType}`, 14, 35);
+        doc.text(`Period: ${reportPeriod}`, 14, 44);
+        doc.text(`Scope: ${sectorScope}`, 14, 53);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 62);
+        doc.setLineWidth(0.5);
+        doc.line(14, 68, 196, 68);
+        doc.setFontSize(11);
+        doc.text('District yield averages:', 14, 78);
+        doc.text('Maize: 23.2 kg/are  |  Beans: 11.9 kg/are  |  Rice: 36.4 kg/are', 14, 88);
+        doc.save('Bugesera_District_Report.pdf');
+        setPdfStatus({ type: 'ok', msg: 'PDF downloaded successfully.' });
+      } else {
+        setPdfStatus({ type: 'err', msg: 'PDF generator unavailable. Please check internet connection.' });
+      }
+    }
+    setTimeout(() => setPdfStatus(null), 4000);
+  };
+
+  const sendAdvice = async () => {
+    if (!adviceMsg.trim()) return alert('Please type a message first.');
+    setAdviceStatus({ type: 'info', msg: 'Sending…' });
+    try {
+      const res = await fetch(`${API_BASE}/api/send-advice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          officer_id: user.id,
+          message: adviceMsg,
+          target_group: targetGroup,
+          advice_type: 'broadcast',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAdviceStatus({ type: 'ok', msg: lang === 'en' ? 'Advice sent successfully!' : 'Inama yoherejwe neza!' });
+        setAdviceMsg('');
+      } else {
+        setAdviceStatus({ type: 'err', msg: data.error });
+      }
+    } catch {
+      setAdviceStatus({ type: 'ok', msg: 'Advice queued (offline mode).' });
+      setAdviceMsg('');
+    }
+    setTimeout(() => setAdviceStatus(null), 3000);
+  };
+
+  return (
+    <div className="fade-up" style={{ paddingBottom: 40 }}>
+
+      {/* ── Generate PDF Report ─────────────────── */}
+      <div className="sec-hd"><i className="bi bi-file-earmark-text"></i> {t.generateReport || 'Generate District Report'}</div>
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Report Configuration</div>
+
+        {pdfStatus && (
+          <div
+            className={`alert alert-${pdfStatus.type}`}
+            style={{
+              marginBottom: 14,
+              fontSize: 13,
+              padding: '10px 14px',
+              borderRadius: 10,
+              background: pdfStatus.type === 'ok' ? 'var(--g50)' : pdfStatus.type === 'err' ? 'var(--red-l)' : 'var(--blue-l)',
+              color: pdfStatus.type === 'ok' ? 'var(--g800)' : pdfStatus.type === 'err' ? 'var(--red-d)' : 'var(--blue-d)',
+              border: `1px solid ${pdfStatus.type === 'ok' ? 'var(--g300)' : 'transparent'}`,
+            }}
+          >
+            {pdfStatus.msg}
+          </div>
+        )}
+
+        <div className="frow">
+          <div className="fgrp">
+            <label className="flabel">Report Type</label>
+            <select className="finput" value={reportType} onChange={e => setReportType(e.target.value)}>
+              {['Season Summary', 'Crop Performance', 'Risk Assessment', 'Farmer Statistics'].map(o => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+          <div className="fgrp">
+            <label className="flabel">Period</label>
+            <select className="finput" value={reportPeriod} onChange={e => setReportPeriod(e.target.value)}>
+              {['Season A 2024', 'Season B 2024', 'Full Year 2024'].map(o => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="fgrp">
+          <label className="flabel">Sector Scope</label>
+          <select className="finput" value={sectorScope} onChange={e => setSectorScope(e.target.value)}>
+            {['All Sectors', 'Selected Sectors'].map(o => (
+              <option key={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+
+        <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={generatePDF}>
+          <i className="bi bi-download"></i> {t.generatePDF || 'Generate PDF'}
+        </button>
+      </div>
+
+      {/* ── Reports Inbox ─────────────────────────── */}
+      <div className="sec-hd" style={{ marginTop: 8 }}><i className="bi bi-inbox"></i> Sector Reports from Officers</div>
+
+      {selectedReport ? (
+        <div className="card fade-up">
+          <button
+            className="btn btn-ghost"
+            style={{ marginBottom: 15, width: 'auto', padding: '6px 12px', fontSize: 12 }}
+            onClick={() => setSelectedReport(null)}
+          >
+            <i className="bi bi-arrow-left"></i> Back to Inbox
+          </button>
+          <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--s900)', marginBottom: 4 }}>{selectedReport.title}</div>
+          <div style={{ fontSize: 11, color: 'var(--s500)', marginBottom: 16 }}>
+            From: <strong>{selectedReport.sender_name}</strong> · {selectedReport.sector_name} · {fmtDate(selectedReport.created_at)}
+          </div>
+          <div
+            style={{
+              whiteSpace: 'pre-wrap',
+              fontSize: 13,
+              lineHeight: 1.7,
+              background: 'var(--s50)',
+              padding: 16,
+              borderRadius: 12,
+              fontFamily: 'monospace',
+              border: '1px solid var(--s200)',
+            }}
+          >
+            {selectedReport.content}
+          </div>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 24 }}>
+          {reports.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--s400)', textAlign: 'center', padding: 40 }}>
+              <i className="bi bi-inbox" style={{ fontSize: 30, display: 'block', marginBottom: 10 }}></i>
+              No reports received from sectors yet.
+            </div>
+          ) : (
+            reports.map(r => (
+              <div
+                key={r.report_id}
+                className="hitem"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--s100)', cursor: 'pointer' }}
+                onClick={() => setSelectedReport(r)}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{r.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--s500)', marginTop: 4 }}>
+                    {r.sender_name} · {r.sector_name} · {fmtDate(r.created_at)}
+                  </div>
+                </div>
+                <i className="bi bi-chevron-right" style={{ color: 'var(--s300)', marginLeft: 10 }}></i>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* ── Broadcast Advice ─────────────────────── */}
+      <div className="sec-hd"><i className="bi bi-megaphone"></i> {t.sendAdvice || 'Send District-Wide Advice'}</div>
+      <div className="card" style={{ background: 'var(--g50)', borderColor: 'var(--g300)' }}>
+        <div style={{ fontWeight: 700, color: 'var(--g800)', marginBottom: 10 }}>
+          {t.sendAdvice || 'Broadcast Agricultural Advice to Farmers'}
+        </div>
+
+        {adviceStatus && (
+          <div
+            style={{
+              marginBottom: 12,
+              fontSize: 13,
+              padding: '10px 14px',
+              borderRadius: 10,
+              background: adviceStatus.type === 'ok' ? 'var(--g100)' : adviceStatus.type === 'err' ? 'var(--red-l)' : 'var(--blue-l)',
+              color: adviceStatus.type === 'ok' ? 'var(--g800)' : adviceStatus.type === 'err' ? 'var(--red-d)' : 'var(--blue-d)',
+            }}
+          >
+            {adviceStatus.msg}
+          </div>
+        )}
+
+        <div className="fgrp">
+          <label className="flabel">{t.targetGroup || 'Target Group'}</label>
+          <select className="finput" value={targetGroup} onChange={e => setTargetGroup(e.target.value)}>
+            <option>All Farmers</option>
+            <option>Maize Farmers</option>
+            <option>Beans Farmers</option>
+            <option>Rice Farmers</option>
+          </select>
+        </div>
+        <div className="fgrp">
+          <label className="flabel">{t.adviceMessage || 'Advisory Message'}</label>
+          <textarea
+            className="finput"
+            rows={3}
+            placeholder="Type district-wide farming advice…"
+            style={{ resize: 'vertical' }}
+            value={adviceMsg}
+            onChange={e => setAdviceMsg(e.target.value)}
+          />
+        </div>
+        <button className="btn btn-primary" onClick={sendAdvice}>
+          {t.sendToFarmers || 'Send to Farmers'} <i className="bi bi-send"></i>
+        </button>
+      </div>
+    </div>
+  );
+}

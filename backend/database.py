@@ -116,9 +116,9 @@ def update_user_password(user_id: str, role: str, new_password: str) -> bool:
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # We update both password and password_hash fields
-                cur.execute(f"UPDATE {table} SET password=%s, password_hash=%s WHERE {id_col}=%s", 
-                           (new_password, new_password, user_id))
+                # Update password_hash field (some tables might not have 'password' column)
+                cur.execute(f"UPDATE {table} SET password_hash=%s WHERE {id_col}=%s", 
+                           (new_password, user_id))
                 conn.commit()
                 return cur.rowcount > 0
     except Exception as e:
