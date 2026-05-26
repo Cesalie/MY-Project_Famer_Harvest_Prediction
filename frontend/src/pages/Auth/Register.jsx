@@ -5,6 +5,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
   const t = T[lang];
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [sector, setSector] = useState("");
   const [farmHa, setFarmHa] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
@@ -13,11 +14,26 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
   const [success, setSuccess] = useState("");
   const [generatedPw, setGeneratedPw] = useState("");
 
+  const checkEmail = async (emailVal) => {
+    if (!emailVal || !emailVal.includes('@')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/check-email?email=${encodeURIComponent(emailVal.trim().toLowerCase())}`);
+      const data = await res.json();
+      if (data.exists) {
+        setError("This email is already taken. Please use another email or login.");
+      } else if (error === "This email is already taken. Please use another email or login.") {
+        setError("");
+      }
+    } catch (e) {
+      console.log("Email check error:", e);
+    }
+  };
+
   const handleRegister = async () => {
     setError(""); 
     setSuccess("");
 
-    if (!name || !email || !sector || !farmHa) {
+    if (!name || !email || !phone || !sector || !farmHa) {
       setError(t.allRequired);
       return;
     }
@@ -48,6 +64,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
       const regData = {
         name, 
         email: email.trim().toLowerCase(), 
+        phone,
         role: "farmer",
         sector: sector,
         farm_size_ha: parseFloat(farmHa) || 0,
@@ -78,6 +95,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
   const resetForm = () => {
     setName("");
     setEmail("");
+    setPhone("");
     setSector("");
     setFarmHa("");
     setAgreedTerms(false);
@@ -87,10 +105,10 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
   };
 
   const containerContent = (
-    <div className="auth-container" style={{ margin: isModal ? "0 auto" : undefined }}>
+    <div className="auth-container" style={{ margin: isModal ? "0 auto" : undefined, padding: isModal ? "10px" : undefined }}>
       
       {/* Title and subtitle outside the card */}
-      <div className="auth-title-container" style={{ marginTop: 20 }}>
+      <div className="auth-title-container" style={{ marginTop: isModal ? 10 : 20 }}>
         <h1 className="auth-title-main">{t.appName}</h1>
         <p className="auth-title-sub">{t.appSub}</p>
       </div>
@@ -129,6 +147,18 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
             placeholder="user@example.com" 
             value={email} 
             onChange={e => setEmail(e.target.value)} 
+            onBlur={e => checkEmail(e.target.value)}
+          />
+        </div>
+
+        <div className="fgrp">
+          <label className="flabel"><i className="bi bi-telephone"></i> {lang === "en" ? "Phone Number" : "Nimero ya Telefone"} *</label>
+          <input 
+            className="academic-input" 
+            type="tel" 
+            placeholder="+250 78x xxx xxx" 
+            value={phone} 
+            onChange={e => setPhone(e.target.value)} 
           />
         </div>
 
@@ -170,7 +200,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
           <button 
             className="auth-btn"
             onClick={handleRegister}
-            disabled={loading || !name || !email || !sector || !farmHa}
+            disabled={loading || !name || !email || !phone || !sector || !farmHa}
           >
             {loading ? <><div className="spin" />{t.creatingAccount}</> : <><i className="bi bi-person-plus"></i> {t.registerBtn}</>}
           </button>

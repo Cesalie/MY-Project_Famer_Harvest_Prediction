@@ -887,6 +887,15 @@ def change_password():
 
     return jsonify({'success': False, 'error': 'User not found.'}), 404
 
+@app.route('/api/check-email', methods=['GET'])
+def api_check_email():
+    email = request.args.get('email', '').strip().lower()
+    if not email:
+        return jsonify({'exists': False})
+    
+    from database import check_email_exists
+    exists = check_email_exists(email)
+    return jsonify({'exists': exists})
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -1445,11 +1454,15 @@ def farmer_stats(farmer_id):
     if not farmer:
         return jsonify({'error': 'Farmer not found'}), 404
     preds = [p for p in _predictions if p.get('farmer_id') == farmer_id]
+    summary = {
+        'total_predictions': len(preds),
+        'avg_yield_kg_are' : round(float(np.mean([p['yield_per_are_kg'] for p in preds])), 2) if preds else 0,
+    }
     return jsonify({
         'farmer'           : {k:v for k,v in farmer.items() if k != 'password'},
-        'total_predictions': len(preds),
-        'predictions'      : preds,
-        'avg_yield_kg_are' : round(float(np.mean([p['yield_per_are_kg'] for p in preds])), 2) if preds else None,
+        'stats'            : summary,
+        'summary'          : summary,
+        'recent_predictions': preds[:5],
     })
 
 

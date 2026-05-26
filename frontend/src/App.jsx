@@ -56,8 +56,20 @@ const EXTRA_CSS = `
   .bar-val{width:60px;text-align:right;font-size:12px;font-weight:700;color:var(--s600)}
   .notif-badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:var(--red,#ef4444);color:white;border-radius:50%;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
   .auth-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1200;backdrop-filter:blur(6px)}
-  .auth-modal-panel{width:min(520px,100%);max-height:calc(100vh - 40px);overflow-y:auto;border-radius:24px;box-shadow:0 24px 80px rgba(15,23,42,.35);background:transparent}
-  .auth-modal-close{position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:999px;border:0;background:rgba(255,255,255,.12);color:white;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .auth-modal-panel{
+    width:min(520px,100%);
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+    border-radius:28px;
+    box-shadow:0 24px 80px rgba(15,23,42,.35);
+    background: radial-gradient(circle, rgba(17, 83, 40, 0.40) 0%, rgba(5, 38, 15, 0.82) 100%), url('/farm_bg.png');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    padding: 10px;
+  }
+  .auth-modal-panel::-webkit-scrollbar{display:none}
+  .auth-modal-close{position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:999px;border:0;background:rgba(255,255,255,.12);color:white;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:10}
   .auth-modal-close:hover{background:rgba(255,255,255,.2)}
 `;
 

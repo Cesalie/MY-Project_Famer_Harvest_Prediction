@@ -8,7 +8,7 @@ import Topbar from '../../components/Common/Topbar';
 import ClimateCard from '../../components/Farmer/ClimateCard';
 import CropIcon from '../../components/Common/CropIcon';
 import { HiArrowLeft, HiCheck, HiOutlineSparkles } from "react-icons/hi2";
-import { MdOutlineAgriculture, MdOutlineLocationOn, MdOutlineCalendarToday, MdOutlineBadge, MdOutlineInfo, MdOutlineAutoFixHigh, MdWifiOff } from "react-icons/md";
+import { MdOutlineAgriculture, MdOutlineLocationOn, MdOutlineCalendarToday, MdOutlineBadge, MdOutlineInfo, MdOutlineWbSunny, MdWifiOff } from "react-icons/md";
 import { FaRulerCombined, FaCheckCircle, FaToggleOn, FaPencilAlt, FaMagic } from "react-icons/fa";
 import { BiCalendar, BiDroplet, BiWater, BiMap } from "react-icons/bi";
 
@@ -386,12 +386,12 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
               
               <div className="summary-grid">
                 {[
-                  { label: "Location", val: form.sector, icon: <BiMap /> },
-                  { label: "Date", val: form.plantingDate, icon: <BiCalendar /> },
-                  { label: "Season", val: form.season, icon: <MdOutlineWbSunny /> },
-                  { label: "Soil", val: form.soil, icon: <MdOutlineAgriculture /> },
-                  { label: "Fertilizer", val: form.fertilizer ? "Yes" : "No", icon: <BiDroplet /> },
-                  { label: "Irrigation", val: form.irrigation ? "Yes" : "No", icon: <BiWater /> }
+                  { label: "Location", val: form.sector, icon: <BiMap color="var(--g600)" /> },
+                  { label: "Date", val: form.plantingDate, icon: <BiCalendar color="var(--g600)" /> },
+                  { label: "Season", val: form.season, icon: <MdOutlineWbSunny color="var(--g600)" /> },
+                  { label: "Soil", val: form.soil, icon: <MdOutlineAgriculture color="var(--g600)" /> },
+                  { label: "Fertilizer", val: form.fertilizer ? "Yes" : "No", icon: <BiDroplet color="var(--g600)" /> },
+                  { label: "Irrigation", val: form.irrigation ? "Yes" : "No", icon: <BiWater color="var(--g600)" /> }
                 ].map(item => (
                   <div key={item.label} className="s-grid-item">
                     <div className="s-grid-icon">{item.icon}</div>

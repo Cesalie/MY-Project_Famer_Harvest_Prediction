@@ -17,6 +17,21 @@ export default function DistrictAdminPanel({ user, lang }) {
 
   useEffect(() => { fetchOfficers(); }, []);
 
+  const checkEmail = async (emailVal) => {
+    if (!emailVal || !emailVal.includes('@')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/check-email?email=${encodeURIComponent(emailVal.trim().toLowerCase())}`);
+      const data = await res.json();
+      if (data.exists) {
+        setStatus({ type: 'err', msg: "This email is already taken. Please use another email." });
+      } else if (status && status.msg === "This email is already taken. Please use another email.") {
+        setStatus(null);
+      }
+    } catch (e) {
+      console.log("Email check error:", e);
+    }
+  };
+
   const fetchOfficers = async () => {
     try {
       const res  = await fetch(`${API_BASE}/api/officers`);
@@ -123,6 +138,7 @@ export default function DistrictAdminPanel({ user, lang }) {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
+              onBlur={e => checkEmail(e.target.value)}
               placeholder="officer@sector.gov.rw"
             />
           </div>

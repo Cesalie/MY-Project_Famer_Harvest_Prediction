@@ -44,7 +44,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
   };
 
   const containerContent = (
-    <div className="auth-container" style={{ margin: isModal ? "0 auto" : undefined }}>
+    <div className="auth-container" style={{ margin: isModal ? "0 auto" : undefined, padding: isModal ? "10px" : undefined }}>
       
       {/* Circular Logo */}
       <div className="system-logo-wrap">
@@ -52,7 +52,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
       </div>
 
       {/* Title and subtitle outside the card */}
-      <div className="auth-title-container">
+      <div className="auth-title-container" style={{ marginTop: isModal ? 10 : 20 }}>
         <h1 className="auth-title-main">{t.appName}</h1>
         <p className="auth-title-sub">{t.appSub}</p>
       </div>

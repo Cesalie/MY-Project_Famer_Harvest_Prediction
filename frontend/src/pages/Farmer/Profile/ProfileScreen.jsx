@@ -49,6 +49,7 @@ export default function ProfileScreen({ user, onNavigate, onLogout, lang, setLan
           {[
             { icon: (<i className="bi bi-person"></i>), key: t.name, val: user.name || user.full_name },
             { icon: (<i className="bi bi-envelope"></i>), key: t.emailLabel, val: user.email },
+            { icon: (<i className="bi bi-telephone"></i>), key: lang === "en" ? "Phone Number" : "Nimero ya Telefone", val: user.phone || "None" },
             { icon: (<i className="bi bi-person-badge"></i>), key: t.farmerId, val: user.id || user.farmer_id },
             { icon: (<i className="bi bi-geo-alt"></i>), key: t.sector, val: user.sector || "Nyamata" },
             { icon: (<i className="bi bi-rulers"></i>), key: t.farmSizeHa, val: `${user.farm_size_ha || 0} ha (${user.farm_size_are || Math.round((user.farm_size_ha || 0) * 100)} are)` }

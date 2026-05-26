@@ -473,6 +473,9 @@ def update_user(user_id: str, role: str, data: dict) -> bool:
                 if 'email' in data:
                     updates.append("email = %s")
                     params.append(data['email'])
+                if 'phone' in data:
+                    updates.append("phone = %s")
+                    params.append(data['phone'])
                 
                 if updates:
                     params.append(user_id)
@@ -510,6 +513,9 @@ def update_user(user_id: str, role: str, data: dict) -> bool:
                 if 'email' in data:
                     updates.append("email = %s")
                     params.append(data['email'])
+                if 'phone' in data:
+                    updates.append("phone = %s")
+                    params.append(data['phone'])
                 if 'department' in data:
                     updates.append("department = %s")
                     params.append(data['department'])
@@ -524,6 +530,17 @@ def update_user(user_id: str, role: str, data: dict) -> bool:
 def get_farmer_stats(farmer_id: str) -> dict:
     with get_db() as conn:
         with conn.cursor() as cur:
+            # Fetch farmer basic info
+            cur.execute("""
+                SELECT f.*, fm.farm_size_are, s.sector_name, ROUND(fm.farm_size_are/100, 2) as farm_size_ha
+                FROM farmers f
+                LEFT JOIN farms fm ON f.farmer_id = fm.farmer_id
+                LEFT JOIN sectors s ON fm.sector_id = s.sector_id
+                WHERE f.farmer_id = %s AND f.is_active = 1
+                LIMIT 1
+            """, (farmer_id,))
+            farmer = cur.fetchone() or {}
+            
             # We don't have v_farmer_summary anymore, let's build it dynamically
             cur.execute("""
                 SELECT COUNT(p.prediction_id) as total_predictions,
@@ -538,7 +555,12 @@ def get_farmer_stats(farmer_id: str) -> dict:
                 FROM predictions WHERE farmer_id=%s ORDER BY created_at DESC LIMIT 5
             """, (farmer_id,))
             recent = cur.fetchall()
-            return {'summary': summary, 'recent_predictions': list(recent)}
+            return {
+                'farmer': farmer,
+                'stats': summary,
+                'summary': summary, 
+                'recent_predictions': list(recent)
+            }
 
 def get_officer_dashboard() -> dict:
     with get_db() as conn:
