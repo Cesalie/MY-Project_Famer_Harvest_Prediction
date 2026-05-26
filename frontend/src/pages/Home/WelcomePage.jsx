@@ -5,182 +5,216 @@ export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister
   const t = T[lang];
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      backgroundImage: "radial-gradient(circle, rgba(17, 83, 40, 0.40) 0%, rgba(5, 38, 15, 0.82) 100%), url('/farm_bg.png')",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundRepeat: "no-repeat",
-      backgroundAttachment: "fixed",
-      display: "flex",
-      flexDirection: "column",
-      color: "white"
-    }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f0fdf4" }}>
+
+      {/* ── Navbar ── */}
       <header style={{
-        background: "white",
-        borderBottom: "1px solid #e2e8f0",
-        padding: "16px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.02)"
+        background: "white", borderBottom: "1px solid #e2e8f0",
+        padding: "0 32px", height: 64,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        boxShadow: "0 1px 8px rgba(0,0,0,0.06)", position: "sticky", top: 0, zIndex: 100
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 28 }}>🌾</span>
+          <img src="/logo.png" alt="logo" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} />
           <div>
-            <h1 style={{ fontSize: 18, fontWeight: 800, color: "var(--g900)", margin: 0 }}>
-              {t.appName}
-            </h1>
-            <p style={{ fontSize: 11, color: "var(--s500)", margin: 0, fontWeight: 500 }}>
-              Bugesera District · Rwanda · Smart Farming
-            </p>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#14532d", lineHeight: 1.1 }}>{t.appName}</div>
+            <div style={{ fontSize: 10, color: "#64748b", fontWeight: 500 }}>Bugesera District · Rwanda</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            className="lang-pill"
-            onClick={() => setLang(l => l === "en" ? "rw" : "en")}
-            style={{
-              background: "var(--s100)",
-              border: "none",
-              padding: "8px 14px",
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6
-            }}
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => setLang(l => l === "en" ? "rw" : "en")} style={{
+            background: "#f1f5f9", border: "none", padding: "7px 14px", borderRadius: 99,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", color: "#475569"
+          }}>
             🌐 {lang === "en" ? "Kinyarwanda" : "English"}
           </button>
-          <button
-            className="btn btn-secondary"
-            onClick={onOpenRegister}
-            style={{ width: "auto", padding: "8px 16px", fontSize: 13, fontWeight: 800, borderRadius: 999, background: "var(--g100)", color: "var(--g800)" }}
-          >
-            {t.registerBtn}
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={onOpenLogin}
-            style={{ width: "auto", padding: "8px 16px", fontSize: 13, fontWeight: 800, borderRadius: 999 }}
-          >
-            {t.login}
-          </button>
+          <button onClick={onOpenLogin} style={{
+            background: "white", border: "1.5px solid #16a34a", color: "#16a34a",
+            padding: "8px 18px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer"
+          }}>{t.login}</button>
+          <button onClick={onOpenRegister} style={{
+            background: "linear-gradient(135deg,#15803d,#16a34a)", color: "white",
+            border: "none", padding: "8px 18px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
+          }}>{lang === "en" ? "Register" : "Iyandikishe"}</button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main style={{ flex: 1, maxWidth: 850, margin: "0 auto", padding: "40px 20px 80px", width: "100%" }}>
-        <div className="card card-hero-elevated" style={{ textAlign: "center", marginBottom: 30, padding: "40px 24px" }}>
-          <h2 style={{ fontSize: 26, fontWeight: 800, color: "var(--g900)", marginBottom: 12 }}>
-            {lang === "en" ? "Grow Smarter. Predict Your Harvest." : "Hinga Kijyambere. Teganya Umusaruro Wawe."}
-          </h2>
-          <p style={{ fontSize: 14, color: "var(--s600)", lineHeight: 1.6, maxWidth: 600, margin: "0 auto 24px" }}>
-            {lang === "en" 
-              ? "Welcome to Bugesera District's official agricultural prediction portal. Plan your planting seasons, retrieve automated localized climate readings, and optimize your seasonal yields with AI recommendations."
-              : "Murakaza neza ku rubuga rw'akarere ka Bugesera rugufasha guteganya umusaruro w'imyaka. Tegura igihe cyo gutera, bona amakuru y'ibihe by'aho uherereye, kandi wongere umusaruro ubinyujije kuri model zacu."}
+      {/* ── Hero ── */}
+      <section style={{
+        backgroundImage: "radial-gradient(circle, rgba(17,83,40,0.55) 0%, rgba(5,38,15,0.88) 100%), url('/farm_bg.png')",
+        backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed",
+        padding: "80px 24px", textAlign: "center", color: "white"
+      }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: 99, padding: "6px 16px", fontSize: 12, fontWeight: 700, marginBottom: 24
+          }}>
+            <span>🌾</span> {lang === "en" ? "Bugesera District · Rwanda · AI-Powered Agriculture" : "Akarere ka Bugesera · Rwanda · Ubuhinzi bw'Ikoranabuhanga"}
+          </div>
+          <h1 style={{ fontSize: 42, fontWeight: 900, lineHeight: 1.15, marginBottom: 20, letterSpacing: "-0.5px" }}>
+            {lang === "en" ? <>Grow Smarter.<br /><span style={{ color: "#86efac" }}>Predict Your Harvest.</span></> : <>Hinga Kijyambere.<br /><span style={{ color: "#86efac" }}>Teganya Umusaruro Wawe.</span></>}
+          </h1>
+          <p style={{ fontSize: 16, opacity: 0.88, lineHeight: 1.7, maxWidth: 580, margin: "0 auto 36px" }}>
+            {lang === "en"
+              ? "Bugesera District's official AI-powered harvest prediction portal. Get accurate yield forecasts, climate analysis, and expert recommendations — all in one place."
+              : "Urubuga rw'akarere ka Bugesera rugufasha guteganya umusaruro w'imyaka ukoresheje AI. Bona igereranya ry'umusaruro, isuzuma ry'ibihe, n'inama z'inzobere — byose ahantu hamwe."}
           </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: 15, flexWrap: "wrap" }}>
-            <button
-              className="btn btn-primary"
-              style={{ width: "auto", padding: "12px 30px", fontSize: 14, fontWeight: 800, borderRadius: 30 }}
-              onClick={onOpenRegister}
-            >
-              🚀 {t.registerBtn}
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
+            <button onClick={onOpenRegister} style={{
+              background: "linear-gradient(135deg,#15803d,#22c55e)", color: "white",
+              border: "none", padding: "14px 32px", borderRadius: 99, fontSize: 15, fontWeight: 800,
+              cursor: "pointer", boxShadow: "0 8px 24px rgba(22,163,74,0.4)", display: "flex", alignItems: "center", gap: 8
+            }}>
+              🚀 {lang === "en" ? "Get Started Free" : "Tangira Ubuntu"}
             </button>
-            <button
-              className="btn btn-secondary"
-              style={{ width: "auto", padding: "12px 24px", fontSize: 14, fontWeight: 800, borderRadius: 30, background: "white", color: "var(--g700)" }}
-              onClick={onOpenLogin}
-            >
-              🔑 {lang === "en" ? "Access Dashboard" : "Kwinjira muri Sisitemu"}
+            <button onClick={onOpenLogin} style={{
+              background: "rgba(255,255,255,0.15)", color: "white",
+              border: "1.5px solid rgba(255,255,255,0.3)", padding: "14px 28px", borderRadius: 99,
+              fontSize: 15, fontWeight: 700, cursor: "pointer", backdropFilter: "blur(8px)"
+            }}>
+              🔑 {lang === "en" ? "Sign In" : "Injira"}
             </button>
           </div>
-        </div>
-
-        {/* Walkthrough - How It Works */}
-        <h3 style={{ fontSize: 18, fontWeight: 800, color: "white", marginBottom: 18, textAlign: "center", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>
-          💡 {lang === "en" ? "How the Prediction System Works" : "Uko Sisitemu yo Guteganya Imyaka Ikora"}
-        </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 40 }}>
-          {[
-            {
-              step: "1",
-              title: lang === "en" ? "Enter Farm Details" : "Injiza Amakuru y'Umurima",
-              desc: lang === "en" 
-                ? "Select your sector, choose your crop type (Maize, Beans, or Rice), and enter your farm size." 
-                : "Hitamo umurenge wawe, ubwoko bw'igihingwa (Ibigori, Ibishyimbo, cyangwa Umuceri), hanyuma wandike ubuso bw'umurima.",
-              icon: "🚜"
-            },
-            {
-              step: "2",
-              title: lang === "en" ? "Auto Climate Analysis" : "Ibihe by'aho Uherereye",
-              desc: lang === "en" 
-                ? "The system automatically matches historical climate statistics (rainfall, temperature, and humidity) for your sector." 
-                : "Sisitemu izahita izana amakuru y'ibihe (imvura, ubushyuhe, n'ubuhehere) y'umurenge wawe ugereranyije n'amateka.",
-              icon: "📊"
-            },
-            {
-              step: "3",
-              title: lang === "en" ? "Get AI Yield Forecast" : "Bona Igereranya ry'Umusaruro",
-              desc: lang === "en" 
-                ? "Get instant predictions in kg/are and tailored post-harvest recommendations to maximize your crop value." 
-                : "Bona umusaruro wateganyijwe mu biro (kg/are) n'inama zigufasha kwirinda igihombo nyuma yo gusarura.",
-              icon: "🏆"
-            }
-          ].map(w => (
-            <div key={w.step} className="card" style={{ position: "relative", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 10, borderLeft: "4px solid var(--g500)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 24 }}>{w.icon}</span>
-                <span style={{ 
-                  background: "var(--g100)", 
-                  color: "var(--g800)", 
-                  fontSize: 11, 
-                  fontWeight: 900, 
-                  width: 22, 
-                  height: 22, 
-                  borderRadius: "50%", 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "center"
-                }}>
-                  {w.step}
-                </span>
-              </div>
-              <h4 style={{ fontSize: 15, fontWeight: 800, color: "var(--g900)", margin: 0 }}>{w.title}</h4>
-              <p style={{ fontSize: 12, color: "var(--s500)", lineHeight: 1.5, margin: 0 }}>{w.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Bugesera District Summary Benchmarks */}
-        <h3 style={{ fontSize: 18, fontWeight: 800, color: "white", marginBottom: 16, textAlign: "center", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>
-          📈 {lang === "en" ? "Bugesera District Yield Benchmarks" : "Impuzandengo y'Imyaka mu Karere ka Bugesera"}
-        </h3>
-        <div className="card card-blue" style={{ marginBottom: 40 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 15, textAlign: "center" }}>
+          {/* Stats row */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 48, flexWrap: "wrap" }}>
             {[
-              { crop: lang === "en" ? "Maize" : "Ibigori", yield: "23.2 kg/are", benchmark: lang === "en" ? "DAP + CAN advised" : "DAP + CAN birasabwa" },
-              { crop: lang === "en" ? "Beans" : "Ibishyimbo", yield: "11.9 kg/are", benchmark: lang === "en" ? "DAP at planting" : "DAP igihe utera" },
-              { crop: lang === "en" ? "Rice" : "Umuceri", yield: "36.4 kg/are", benchmark: lang === "en" ? "Urea at tillering" : "Urea irakenewe" }
-            ].map(b => (
-              <div key={b.crop} style={{ padding: "10px 0" }}>
-                <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 600, textTransform: "uppercase" }}>{b.crop}</div>
-                <div style={{ fontSize: 20, fontWeight: 900, margin: "4px 0" }}>{b.yield}</div>
-                <div style={{ fontSize: 10, opacity: 0.75 }}>{b.benchmark}</div>
+              { val: "15", lbl: lang === "en" ? "Sectors Covered" : "Imirenge" },
+              { val: "84.8%", lbl: lang === "en" ? "Model Accuracy" : "Ubushobozi bwa AI" },
+              { val: "3", lbl: lang === "en" ? "Crop Types" : "Ubwoko bw'Ibihingwa" },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 32, fontWeight: 900, color: "#86efac", fontFamily: "monospace" }}>{s.val}</div>
+                <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4, fontWeight: 600 }}>{s.lbl}</div>
               </div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* Footer info */}
-        <div style={{ textAlign: "center", fontSize: 12, color: "var(--s500)", marginTop: 40, borderTop: "1px solid var(--s200)", paddingTop: 20 }}>
-          🌾 {lang === "rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural Prediction Portal"} · Rwanda Polytechnic Capstone Project
+      {/* ── How It Works ── */}
+      <section style={{ padding: "72px 24px", background: "white" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#dcfce7", color: "#15803d", borderRadius: 99, padding: "6px 16px", fontSize: 12, fontWeight: 800, marginBottom: 14 }}>
+              <i className="bi bi-question-circle-fill"></i>
+              {lang === "en" ? "How It Works" : "Uko Bikora"}
+            </div>
+            <h2 style={{ fontSize: 30, fontWeight: 900, color: "#0f172a", margin: "0 0 12px", letterSpacing: "-0.3px" }}>
+              {lang === "en" ? "How the Harvest Prediction System Works?" : "Uko Sisitemu yo Guteganya Imyaka Ikora?"}
+            </h2>
+            <p style={{ fontSize: 15, color: "#64748b", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
+              {lang === "en"
+                ? "Three simple steps to get your personalized harvest forecast powered by machine learning."
+                : "Intambwe eshatu zoroshye kugira ngo ubone igereranya ry'umusaruro wawe rikoresheje machine learning."}
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
+            {[
+              {
+                step: "01", icon: "🚜", color: "#dcfce7", iconColor: "#15803d",
+                title: lang === "en" ? "Enter Your Farm Details" : "Injiza Amakuru y'Umurima",
+                desc: lang === "en"
+                  ? "Select your sector, choose your crop (Maize, Beans, or Rice), enter your farm size and planting date. The system auto-detects your soil type."
+                  : "Hitamo umurenge wawe, ubwoko bw'igihingwa (Ibigori, Ibishyimbo, cyangwa Umuceri), wandike ubuso bw'umurima n'itariki yo gutera. Sisitemu izahita imenya ubwoko bw'ubutaka."
+              },
+              {
+                step: "02", icon: "🌦️", color: "#dbeafe", iconColor: "#1d4ed8",
+                title: lang === "en" ? "Auto Climate Analysis" : "Isuzuma ry'Ibihe Bwite",
+                desc: lang === "en"
+                  ? "The system automatically loads historical climate data (rainfall, temperature, humidity, sunshine hours) for your exact sector in Bugesera."
+                  : "Sisitemu izahita izana amakuru y'ibihe (imvura, ubushyuhe, ubuhehere, amasaha y'izuba) y'umurenge wawe mu Bugesera."
+              },
+              {
+                step: "03", icon: "🏆", color: "#fef3c7", iconColor: "#d97706",
+                title: lang === "en" ? "Get AI Yield Forecast" : "Bona Igereranya ry'Umusaruro",
+                desc: lang === "en"
+                  ? "Receive your predicted yield in kg/are, total harvest estimate, confidence score, and personalized recommendations to maximize your crop value."
+                  : "Bona umusaruro wateganyijwe mu kg/are, igiteganyo cy'isarura ryose, amanota y'inyemeza, n'inama zigufasha kwongera agaciro k'imyaka yawe."
+              }
+            ].map((w, i) => (
+              <div key={i} style={{
+                background: "white", border: "1.5px solid #e2e8f0", borderRadius: 20,
+                padding: 28, position: "relative", overflow: "hidden",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.04)", transition: "all 0.3s ease"
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = "#86efac"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
+              >
+                <div style={{ position: "absolute", top: 20, right: 20, fontSize: 48, fontWeight: 900, color: "#f1f5f9", fontFamily: "monospace", lineHeight: 1 }}>{w.step}</div>
+                <div style={{ width: 52, height: 52, background: w.color, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 18 }}>
+                  {w.icon}
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>{w.title}</h3>
+                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.65, margin: 0 }}>{w.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* ── Benchmarks ── */}
+      <section style={{ padding: "64px 24px", background: "linear-gradient(135deg,#14532d,#166534)" }}>
+        <div style={{ maxWidth: 800, margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontSize: 26, fontWeight: 900, color: "white", marginBottom: 8 }}>
+            📈 {lang === "en" ? "Bugesera District Yield Benchmarks" : "Impuzandengo y'Imyaka mu Karere ka Bugesera"}
+          </h2>
+          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", marginBottom: 36 }}>
+            {lang === "en" ? "Based on 2020–2024 agricultural data from 15 sectors" : "Bigendeye ku makuru y'ubuhinzi 2020–2024 avuye mu mirenge 15"}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+            {[
+              { crop: lang === "en" ? "Maize" : "Ibigori", emoji: "🌽", yield: "23.2", tip: lang === "en" ? "DAP + CAN advised" : "DAP + CAN birasabwa" },
+              { crop: lang === "en" ? "Beans" : "Ibishyimbo", emoji: "🫘", yield: "11.9", tip: lang === "en" ? "DAP at planting" : "DAP igihe utera" },
+              { crop: lang === "en" ? "Rice" : "Umuceri", emoji: "🌾", yield: "36.4", tip: lang === "en" ? "Urea at tillering" : "Urea irakenewe" }
+            ].map(b => (
+              <div key={b.crop} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 18, padding: "24px 16px" }}>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>{b.emoji}</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px" }}>{b.crop}</div>
+                <div style={{ fontSize: 34, fontWeight: 900, color: "#86efac", fontFamily: "monospace", margin: "6px 0" }}>{b.yield}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>kg/are avg · {b.tip}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section style={{ padding: "64px 24px", background: "#f0fdf4", textAlign: "center" }}>
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+          <h2 style={{ fontSize: 28, fontWeight: 900, color: "#14532d", marginBottom: 12 }}>
+            {lang === "en" ? "Ready to predict your harvest?" : "Witeguye guteganya umusaruro wawe?"}
+          </h2>
+          <p style={{ fontSize: 14, color: "#64748b", marginBottom: 28, lineHeight: 1.6 }}>
+            {lang === "en"
+              ? "Join farmers across Bugesera District using AI to plan smarter seasons."
+              : "Injira mu bahinzi bo mu Karere ka Bugesera bakoresha AI gutegura ibihe by'ihinga neza."}
+          </p>
+          <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            <button onClick={onOpenRegister} style={{
+              background: "linear-gradient(135deg,#15803d,#22c55e)", color: "white",
+              border: "none", padding: "14px 32px", borderRadius: 99, fontSize: 15, fontWeight: 800,
+              cursor: "pointer", boxShadow: "0 8px 24px rgba(22,163,74,0.3)"
+            }}>
+              {lang === "en" ? "Create Free Account" : "Fungura Konti Ubuntu"}
+            </button>
+            <button onClick={onOpenLogin} style={{
+              background: "white", border: "1.5px solid #16a34a", color: "#16a34a",
+              padding: "14px 28px", borderRadius: 99, fontSize: 15, fontWeight: 700, cursor: "pointer"
+            }}>
+              {lang === "en" ? "Sign In" : "Injira"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer style={{ background: "#0f172a", color: "rgba(255,255,255,0.5)", padding: "20px 24px", textAlign: "center", fontSize: 12 }}>
+        🌾 {lang === "en" ? "Bugesera Harvest Prediction System" : "Sisitemu yo Guteganya Imyaka ya Bugesera"} · Rwanda Polytechnic · 2024
+      </footer>
     </div>
   );
 }

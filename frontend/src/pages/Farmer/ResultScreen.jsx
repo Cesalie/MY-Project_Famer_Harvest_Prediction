@@ -267,7 +267,7 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24, marginBottom: 20 }}>
           <button className="btn btn-primary" onClick={generatePDF} 
             style={{ background: "var(--g700)", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "15px", borderRadius: 14 }}>
-            <span style={{ fontSize: 20 }}><i className="bi bi-file-earmark-text"></i></span> {lang === "en" ? "Download Official Report (PDF)" : "Gukuramo Raporo (PDF)"}
+            <span style={{ fontSize: 20 }}><i className="bi bi-file-earmark-text"></i></span> {lang === "en" ? "Download Your Prediction Result" : "Kuramo Raporo y'Igisobanuro Cyawe"}
           </button>
           
           <div style={{ display: "flex", gap: 10 }}>

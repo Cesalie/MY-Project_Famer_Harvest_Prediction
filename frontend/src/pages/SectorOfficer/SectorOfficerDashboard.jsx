@@ -15,6 +15,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
   const [selectedFarmerId, setSelectedFarmerId] = useState(null);
   const [selectedPred, setSelectedPred] = useState(null);
   const [underperforming, setUnderperforming] = useState([]);
+  const [autoAdvice, setAutoAdvice] = useState(null); // { farmerId, msg }
 
   const sectorName = user.sector || "Nyamata";
   const sectorId = user.sector_id || (SECTORS.indexOf(sectorName) + 1);
@@ -47,7 +48,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
     fetchUnderperforming();
   }, [sectorName]);
 
-  const totalPreds = dashData?.all_predictions?.length || dashData?.recent_preds?.length || 0;
+  const totalPreds = dashData?.total_predictions || dashData?.all_predictions?.length || dashData?.recent_preds?.length || 0;
   const avgYield = dashData?.crop_data
     ? (() => {
         const vals = Object.values(dashData.crop_data).map(v => typeof v === 'object' ? v.avg_yield_kg_are : v).filter(Boolean);
@@ -199,15 +200,24 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
                 <span className="so-alert-badge">{underperforming.length}</span>
               </div>
               {underperforming.slice(0, 4).map((f, i) => (
-                <div key={i} className="so-alert-row" onClick={() => setSelectedFarmerId(f.farmer_id || f.id)}>
-                  <div className="so-alert-avatar">
-                    {(f.name || 'F').charAt(0).toUpperCase()}
-                  </div>
+                <div key={i} className="so-alert-row" onClick={() => {
+                  const msg = lang === 'en'
+                    ? `Dear ${f.name?.split(' ')[0] || 'Farmer'}, your ${f.crop_type} yield was ${f.gap_pct}% below the predicted target. Please contact the sector office for support on soil management and fertilizer application to improve your next harvest.`
+                    : `Muhinzi wacu ${f.name?.split(' ')[0] || ''}, umusaruro wawe wa ${f.crop_type} wari munsi ya ${f.gap_pct}% y'intego yateganyijwe. Baza ibiro by'umurenge kugira ngo ubone ubufasha ku gucunga ubutaka no gukoresha ifumbire neza mu gihe gikurikira.`;
+                  setAutoAdvice({ farmerId: f.farmer_id || f.id, msg });
+                  setSelectedFarmerId(f.farmer_id || f.id);
+                }}>
+                  <div className="so-alert-avatar">{(f.name || 'F').charAt(0).toUpperCase()}</div>
                   <div className="so-alert-info">
                     <div className="so-alert-name">{f.name}</div>
                     <div className="so-alert-meta">{f.crop_type} · {f.sector_name}</div>
                   </div>
-                  <div className="so-alert-gap">-{f.gap_pct}%</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div className="so-alert-gap">-{f.gap_pct}%</div>
+                    <div style={{ background:'#dc2626', color:'white', borderRadius:99, padding:'4px 10px', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}>
+                      <i className="bi bi-chat-dots-fill"></i> {lang==='en'?'Advise':'Inama'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -233,11 +243,13 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
       return (
         <FarmerDetailView
           farmerId={selectedFarmerId}
-          onBack={() => setSelectedFarmerId(null)}
+          onBack={() => { setSelectedFarmerId(null); setAutoAdvice(null); }}
           lang={lang}
           setLang={setLang}
           setSelectedPred={setSelectedPred}
           officer={user}
+          autoAdvice={autoAdvice}
+          onAdviceUsed={() => setAutoAdvice(null)}
         />
       );
     }

@@ -1,132 +1,230 @@
 import React from 'react';
-import { T, fmtDate } from '../../constants/constants';
+import { T, fmtDate, CROP_BENCH } from '../../constants/constants';
 import Topbar from '../../components/Common/Topbar';
 import CropIcon from '../../components/Common/CropIcon';
-import { HiOutlineSquares2X2, HiOutlineBell, HiOutlineChevronRight, HiOutlineSparkles } from "react-icons/hi2";
-import { MdOutlineAddCircle, MdOutlineHistory, MdOutlineWbSunny, MdOutlineLightbulb, MdOutlineArrowForwardIos } from "react-icons/md";
-import { BiFolderOpen } from "react-icons/bi";
+
+const CROP_COLORS = { Maize: '#f59e0b', Beans: '#22c55e', Rice: '#3b82f6' };
+const CROP_BG    = { Maize: '#fef3c7', Beans: '#dcfce7', Rice: '#dbeafe' };
 
 export default function FarmerDashboard({ user, onNavigate, onResult, history = [], lang, setLang, notifications = [] }) {
   const t = T[lang];
-  const farmHa = user.farm_size_ha || 0;
+  const farmHa  = user.farm_size_ha  || 0;
   const farmAre = user.farm_size_are || Math.round(farmHa * 100);
+  const unread  = notifications.filter(n => !n.read).length;
+
+  // Compute avg yield from history
+  const avgYield = history.length
+    ? (history.reduce((s, p) => s + parseFloat(p.yield_per_are_kg || 0), 0) / history.length).toFixed(1)
+    : null;
+
+  // Best prediction
+  const bestPred = history.length
+    ? history.reduce((best, p) => parseFloat(p.yield_per_are_kg) > parseFloat(best.yield_per_are_kg) ? p : best, history[0])
+    : null;
 
   return (
     <>
-      <Topbar 
+      <Topbar
         title={
           <div className="dash-header-clean">
-            <span className="dash-header-icon"><HiOutlineSquares2X2 /></span>
+            <span className="dash-header-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
+              <i className="bi bi-speedometer2"></i>
+            </span>
             <div className="dash-header-text">
-              <h1 className="dash-title">{lang === "en" ? "Farmer Dashboard" : "Ibiranga Umuhinzi"}</h1>
+              <h1 className="dash-title">{lang === 'en' ? 'Farmer Dashboard' : 'Incumbane y\'Umuhinzi'}</h1>
               <p className="dash-subtitle">{fmtDate(new Date())}</p>
             </div>
           </div>
-        } 
-        onBack={null} 
-        lang={lang} 
+        }
+        onBack={null}
+        lang={lang}
         setLang={setLang}
         actions={
           <div className="dash-actions">
-            <button className="dash-action-btn" onClick={() => onNavigate("notifications")} style={{ position: "relative" }}>
-              <HiOutlineBell />
-              {notifications.length > 0 && <span className="notif-dot"></span>}
+            <button className="dash-action-btn" onClick={() => onNavigate('notifications')} style={{ position: 'relative' }}>
+              <i className="bi bi-bell-fill"></i>
+              {unread > 0 && (
+                <span style={{ position:'absolute', top:6, right:6, width:8, height:8, background:'#ef4444', borderRadius:'50%', border:'2px solid white' }}></span>
+              )}
             </button>
-            <button className="dash-action-btn profile-trigger" onClick={() => onNavigate("profile")}>
-              <div className="dash-avatar">
-                {user.name ? user.name.charAt(0).toUpperCase() : "F"}
-              </div>
+            <button className="dash-action-btn" onClick={() => onNavigate('profile')} style={{ background: '#16a34a', color: 'white', border: 'none' }}>
+              <span style={{ fontWeight: 800, fontSize: 13 }}>{user.name ? user.name.charAt(0).toUpperCase() : 'F'}</span>
             </button>
           </div>
         }
       />
-      <div className="scroll fade-up dash-content">
-        {/* Modern Welcome Section */}
-        <div className="modern-welcome-card">
+
+      <div className="scroll fade-up">
+
+        {/* ── Welcome Banner ── */}
+        <div className="modern-welcome-card" style={{ marginBottom: 24 }}>
           <div className="welcome-content">
             <h2 className="welcome-greet">
-              {t.welcome}, <span className="welcome-name">{user.name ? user.name.split(" ")[0] : "Farmer"}</span>! 👋
+              {t.welcome}, <span className="welcome-name">{user.name?.split(' ')[0] || 'Farmer'}</span>! 👋
             </h2>
-            <p className="welcome-sub">
-              <i className="bi bi-geo-alt-fill"></i> {user.sector || "Nyamata"} Sector · {t.farmerId}: {user.id || user.farmer_id}
+            <p className="welcome-sub" style={{ marginBottom: 20 }}>
+              <i className="bi bi-geo-alt-fill"></i> {user.sector || 'Nyamata'} · ID: <strong>{user.id || user.farmer_id}</strong>
             </p>
             <div className="welcome-stats">
               <div className="w-stat">
-                <span className="w-stat-val">{farmHa}</span>
-                <span className="w-stat-lbl">{t.totalFarmSize} (ha)</span>
+                <span className="w-stat-val">{farmAre}</span>
+                <span className="w-stat-lbl">{lang === 'en' ? 'Farm (are)' : 'Akarima (are)'}</span>
               </div>
               <div className="w-stat-divider"></div>
               <div className="w-stat">
                 <span className="w-stat-val">{history.length}</span>
                 <span className="w-stat-lbl">{t.predictions}</span>
               </div>
+              {avgYield && <>
+                <div className="w-stat-divider"></div>
+                <div className="w-stat">
+                  <span className="w-stat-val">{avgYield}</span>
+                  <span className="w-stat-lbl">kg/are avg</span>
+                </div>
+              </>}
             </div>
           </div>
-          <div className="welcome-illustration">
-            <i className="bi bi-sun-fill"></i>
+          <div className="welcome-illustration"><i className="bi bi-sun-fill"></i></div>
+        </div>
+
+        {/* ── Notifications Banner ── */}
+        {unread > 0 && (
+          <div onClick={() => onNavigate('notifications')} style={{
+            background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: 'white',
+            borderRadius: 16, padding: '14px 20px', marginBottom: 20,
+            display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(59,130,246,0.3)'
+          }}>
+            <div style={{ width:40, height:40, background:'rgba(255,255,255,0.2)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
+              <i className="bi bi-bell-fill"></i>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:800, fontSize:14 }}>
+                {unread} {lang === 'en' ? 'new message(s) from your Agri Officer' : 'ubutumwa bushya buvuye ku Ofisiye w\'Ubuhinzi'}
+              </div>
+              <div style={{ fontSize:12, opacity:.85, marginTop:2 }}>
+                {lang === 'en' ? 'Tap to read advice and recommendations' : 'Kanda urebe inama n\'ibisobanuro'}
+              </div>
+            </div>
+            <i className="bi bi-chevron-right" style={{ opacity:.7 }}></i>
+          </div>
+        )}
+
+        {/* ── Quick Actions ── */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize:12, fontWeight:800, color:'var(--s500)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:14 }}>
+            {lang === 'en' ? 'Quick Actions' : 'Ibikorwa Byihuse'}
+          </div>
+          <div className="modern-action-grid">
+            {[
+              { icon: 'bi-tree-fill',         label: t.newPred,                          desc: lang==='en'?'Start new prediction':'Teganya isarura',  color:'#16a34a', target:'predict' },
+              { icon: 'bi-bar-chart-line-fill',label: lang==='en'?'History':'Amateka',   desc: lang==='en'?'View past predictions':'Reba amateka',     color:'#3b82f6', target:'history' },
+              { icon: 'bi-cloud-sun-fill',     label: lang==='en'?'Weather':'Ikirere',   desc: lang==='en'?'Local forecast':'Amakuru y\'ikirere',       color:'#f59e0b', target:'weather' },
+              { icon: 'bi-lightbulb-fill',     label: lang==='en'?'Tips':'Inama',        desc: lang==='en'?'Agronomic advice':'Inama z\'ubuhinzi',      color:'#8b5cf6', target:'tips'    },
+            ].map(item => (
+              <button key={item.target} className="modern-action-card" onClick={() => onNavigate(item.target)} style={{'--accent-color': item.color}}>
+                <div className="m-card-icon" style={{ backgroundColor:`${item.color}18`, color:item.color }}>
+                  <i className={`bi ${item.icon}`} style={{ fontSize:22 }}></i>
+                </div>
+                <div className="m-card-info">
+                  <span className="m-card-label">{item.label}</span>
+                  <span className="m-card-desc">{item.desc}</span>
+                </div>
+                <i className="bi bi-chevron-right" style={{ color:'var(--s300)', fontSize:14 }}></i>
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Action Grid */}
-        <div className="modern-action-grid">
-          {[
-            { icon: <MdOutlineAddCircle />, label: t.newPred, desc: lang === "en" ? "Start new prediction" : "Teganya isarura", color: "#10b981", target: "predict" },
-            { icon: <MdOutlineHistory />, label: lang === "en" ? "History" : "Amateka", desc: t.predHistory, color: "#3b82f6", target: "history" },
-            { icon: <MdOutlineWbSunny />, label: lang === "en" ? "Weather" : "Ikirere", desc: "Local forecast", color: "#f59e0b", target: "weather" },
-            { icon: <MdOutlineLightbulb />, label: lang === "en" ? "Advice" : "Inama", desc: "Agronomic tips", color: "#8b5cf6", target: "tips" }
-          ].map(item => (
-            <button 
-              key={item.target} 
-              className="modern-action-card"
-              onClick={() => onNavigate(item.target)}
-              style={{"--accent-color": item.color}}
-            >
-              <div className="m-card-icon" style={{backgroundColor: `${item.color}15`, color: item.color}}>
-                {item.icon}
+        {/* ── Best Prediction highlight ── */}
+        {bestPred && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'var(--s500)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:14 }}>
+              🏆 {lang === 'en' ? 'Your Best Prediction' : 'Igisobanuro Cyawe Cyiza Cyane'}
+            </div>
+            <div onClick={() => onResult(bestPred)} style={{
+              background:'linear-gradient(135deg,#14532d,#16a34a)', color:'white',
+              borderRadius:20, padding:'20px 24px', cursor:'pointer',
+              display:'flex', alignItems:'center', gap:16,
+              boxShadow:'0 8px 24px rgba(22,163,74,0.25)'
+            }}>
+              <div style={{ width:52, height:52, background:'rgba(255,255,255,0.15)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
+                <CropIcon name={bestPred.crop} size={28} />
               </div>
-              <div className="m-card-info">
-                <span className="m-card-label">{item.label}</span>
-                <span className="m-card-desc">{item.desc}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:800, fontSize:16 }}>{bestPred.crop}</div>
+                <div style={{ fontSize:12, opacity:.8, marginTop:2 }}>{fmtDate(bestPred.timestamp)} · {bestPred.sector}</div>
               </div>
-              <HiOutlineChevronRight className="m-card-arrow" />
-            </button>
-          ))}
-        </div>
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontSize:28, fontWeight:900, fontFamily:'monospace', lineHeight:1 }}>{parseFloat(bestPred.yield_per_are_kg).toFixed(1)}</div>
+                <div style={{ fontSize:11, opacity:.75 }}>kg/are</div>
+              </div>
+              <i className="bi bi-chevron-right" style={{ opacity:.6 }}></i>
+            </div>
+          </div>
+        )}
 
-        {/* Recent Activity Section */}
+        {/* ── Recent Predictions ── */}
         <div className="section-container">
           <div className="section-header">
-            <h3 className="section-title"><HiOutlineSparkles /> {t.recentPredictions}</h3>
-            <button className="section-link" onClick={() => onNavigate("history")}>{lang === "en" ? "View All" : "Byose"}</button>
+            <h3 className="section-title">
+              <i className="bi bi-clock-history" style={{ marginRight:8 }}></i>
+              {t.recentPredictions}
+            </h3>
+            {history.length > 0 && (
+              <button className="section-link" onClick={() => onNavigate('history')}>
+                {lang === 'en' ? 'View All' : 'Byose'} →
+              </button>
+            )}
           </div>
-          
+
           {history.length === 0 ? (
             <div className="empty-state-card">
-              <div className="empty-icon"><BiFolderOpen /></div>
-              <p>{lang === "en" ? "No predictions yet. Let's start one!" : "Nta bisobanuro bihari. Reka dutangire!"}</p>
-              <button className="btn-start-mini" onClick={() => onNavigate("predict")}>{t.newPred}</button>
+              <div className="empty-icon"><i className="bi bi-clipboard2-x" style={{ fontSize:48, opacity:.4 }}></i></div>
+              <p style={{ fontWeight:600, color:'var(--s500)' }}>
+                {lang === 'en' ? 'No predictions yet. Start your first one!' : 'Nta bisobanuro bihari. Tangira ubwa mbere!'}
+              </p>
+              <button className="btn-start-mini" onClick={() => onNavigate('predict')}>
+                <i className="bi bi-tree-fill"></i> {t.newPred}
+              </button>
             </div>
           ) : (
-            <div className="recent-list">
-              {history.slice(0, 3).map((p, i) => (
-                <div key={i} className="modern-history-item" onClick={() => onResult(p)}>
-                  <div className="mh-icon">
-                    <CropIcon name={p.crop} size={24} />
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {history.slice(0, 4).map((p, i) => {
+                const crop = p.crop || p.crop_type;
+                const bench = CROP_BENCH[crop] || 20;
+                const yld = parseFloat(p.yield_per_are_kg || 0);
+                const vs = ((yld - bench) / bench * 100).toFixed(0);
+                return (
+                  <div key={i} className="modern-history-item" onClick={() => onResult(p)}>
+                    <div className="mh-icon" style={{ background: CROP_BG[crop] || '#f1f5f9', color: CROP_COLORS[crop] || '#64748b' }}>
+                      <CropIcon name={crop} size={22} />
+                    </div>
+                    <div className="mh-info">
+                      <span className="mh-crop">{crop}</span>
+                      <span className="mh-date">{fmtDate(p.timestamp)} · {p.sector}</span>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <span style={{
+                        fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:99,
+                        background: parseFloat(vs)>=0?'#dcfce7':'#fee2e2',
+                        color: parseFloat(vs)>=0?'#16a34a':'#dc2626'
+                      }}>
+                        {parseFloat(vs)>=0?'+':''}{vs}%
+                      </span>
+                      <div className="mh-yield">
+                        <span className="mh-val">{yld.toFixed(1)}</span>
+                        <span className="mh-unit">kg/are</span>
+                      </div>
+                    </div>
+                    <i className="bi bi-chevron-right" style={{ color:'var(--s300)', fontSize:13 }}></i>
                   </div>
-                  <div className="mh-info">
-                    <span className="mh-crop">{p.crop}</span>
-                    <span className="mh-date">{fmtDate(p.timestamp)} · {p.sector}</span>
-                  </div>
-                  <div className="mh-yield">
-                    <span className="mh-val">{p.yield_per_are_kg}</span>
-                    <span className="mh-unit">kg/are</span>
-                  </div>
-                  <div className="mh-arrow"><MdOutlineArrowForwardIos /></div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
+
       </div>
     </>
   );

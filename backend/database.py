@@ -397,19 +397,48 @@ def update_actual_yield(prediction_id: str, actual_yield: float, harvest_date: s
 def get_district_stats() -> dict:
     with get_db() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM v_district_stats")
+            # Per-crop stats (all predictions)
+            cur.execute("""
+                SELECT crop_type, season,
+                       COUNT(*) AS total_predictions,
+                       ROUND(AVG(yield_per_are_kg),2) AS avg_yield_kg_are,
+                       ROUND(MIN(yield_per_are_kg),2) AS min_yield,
+                       ROUND(MAX(yield_per_are_kg),2) AS max_yield,
+                       ROUND(SUM(total_yield_kg),1)   AS total_yield_kg,
+                       COUNT(DISTINCT farmer_id)       AS unique_farmers
+                FROM predictions
+                GROUP BY crop_type, season
+            """)
             stats = cur.fetchall()
-            cur.execute("SELECT * FROM v_sector_ranking")
+
+            # Sector ranking with per-crop averages (all predictions)
+            cur.execute("""
+                SELECT s.sector_name,
+                       s.soil_type, s.soil_health,
+                       COUNT(p.prediction_id) AS total_predictions,
+                       ROUND(AVG(p.yield_per_are_kg),2) AS avg_yield_kg_are,
+                       ROUND(SUM(p.total_yield_kg),1)   AS total_yield_kg,
+                       ROUND(AVG(CASE WHEN p.crop_type='Maize' THEN p.yield_per_are_kg END),2) AS maize_avg,
+                       ROUND(AVG(CASE WHEN p.crop_type='Beans' THEN p.yield_per_are_kg END),2) AS beans_avg,
+                       ROUND(AVG(CASE WHEN p.crop_type='Rice'  THEN p.yield_per_are_kg END),2) AS rice_avg
+                FROM sectors s
+                LEFT JOIN farms fm ON s.sector_id = fm.sector_id
+                LEFT JOIN predictions p ON fm.farmer_id = p.farmer_id
+                GROUP BY s.sector_id
+                ORDER BY avg_yield_kg_are DESC
+            """)
             sector_rank = cur.fetchall()
+
+            # Overall totals (all predictions)
             cur.execute("""
                 SELECT COUNT(*) as total_preds,
                        COUNT(DISTINCT farmer_id) as total_farmers,
                        ROUND(AVG(yield_per_are_kg),2) as avg_yield,
                        ROUND(SUM(total_yield_kg),1) as total_yield
                 FROM predictions
-                WHERE is_approved=1
             """)
             totals = cur.fetchone()
+
             cur.execute("""
                 SELECT season, ROUND(AVG(yield_per_are_kg),2) as avg_yield, COUNT(*) as count
                 FROM predictions
@@ -417,11 +446,26 @@ def get_district_stats() -> dict:
             """)
             seasons = cur.fetchall()
 
+            # Serialize decimals/dates
+            def clean(rows):
+                result = []
+                for r in (rows if isinstance(rows, list) else [rows]):
+                    d = {}
+                    for k, v in r.items():
+                        if hasattr(v, '__float__') and not isinstance(v, (int, str, bool, type(None))):
+                            d[k] = float(v)
+                        elif hasattr(v, 'isoformat'):
+                            d[k] = v.isoformat()
+                        else:
+                            d[k] = v
+                    result.append(d)
+                return result
+
             return {
-                'totals': totals or {},
-                'by_crop': list(stats),
-                'sector_ranking': list(sector_rank),
-                'seasons': list(seasons),
+                'totals': clean([totals])[0] if totals else {},
+                'by_crop': clean(list(stats)),
+                'sector_ranking': clean(list(sector_rank)),
+                'seasons': clean(list(seasons)),
             }
 
 def get_sector_dashboard_by_id(sector_id: int) -> dict:
@@ -567,12 +611,14 @@ def get_officer_dashboard() -> dict:
         with conn.cursor() as cur:
             cur.execute("SELECT COUNT(*) as cnt FROM farmers WHERE is_active=1")
             farmer_count = cur.fetchone()['cnt']
-            cur.execute("SELECT COUNT(*) as cnt FROM predictions WHERE is_approved=1")
+            cur.execute("SELECT COUNT(*) as cnt FROM predictions")
             pred_count = cur.fetchone()['cnt']
             cur.execute("""
                 SELECT s.sector_name, ROUND(AVG(p.yield_per_are_kg),2) as avg_yield, COUNT(*) as pred_count
-                FROM predictions p JOIN sectors s ON p.sector_id=s.sector_id
-                WHERE p.is_approved=1 GROUP BY p.sector_id HAVING avg_yield < 15
+                FROM predictions p
+                JOIN farms fm ON p.farmer_id = fm.farmer_id
+                JOIN sectors s ON fm.sector_id = s.sector_id
+                GROUP BY fm.sector_id HAVING avg_yield < 15
             """)
             alerts = cur.fetchall()
             return {
@@ -589,6 +635,7 @@ def get_sector_dashboard(sector_name: str) -> dict:
             sec = cur.fetchone()
             sec_id = sec['sector_id'] if sec else 1
 
+            # Farmers who have a farm in this sector
             cur.execute("""
                 SELECT COUNT(DISTINCT f.farmer_id) as cnt 
                 FROM farmers f
@@ -597,20 +644,40 @@ def get_sector_dashboard(sector_name: str) -> dict:
             """, (sec_id,))
             farmer_count = cur.fetchone()['cnt']
 
-            cur.execute("SELECT COUNT(*) as cnt FROM predictions WHERE sector_id=%s AND is_approved=1", (sec_id,))
-            pred_count = cur.fetchone()['cnt']
-            
+            # Get farmer_ids in this sector (via farms table)
             cur.execute("""
+                SELECT DISTINCT fm.farmer_id
+                FROM farms fm
+                WHERE fm.sector_id=%s
+            """, (sec_id,))
+            farmer_ids = [r['farmer_id'] for r in cur.fetchall()]
+
+            if not farmer_ids:
+                return {
+                    'total_farmers': farmer_count,
+                    'total_predictions': 0,
+                    'pending_predictions': [],
+                    'farmers': [],
+                    'all_predictions': [],
+                    'seasons': [],
+                }
+
+            fmt = ','.join(['%s'] * len(farmer_ids))
+
+            cur.execute(f"SELECT COUNT(*) as cnt FROM predictions WHERE farmer_id IN ({fmt})", tuple(farmer_ids))
+            pred_count = cur.fetchone()['cnt']
+
+            cur.execute(f"""
                 SELECT p.prediction_id, p.farmer_id, f.full_name as farmer_name, p.crop_type, 
                        p.yield_per_are_kg, p.total_yield_kg, p.created_at, p.is_approved
                 FROM predictions p
                 JOIN farmers f ON p.farmer_id = f.farmer_id
-                WHERE p.sector_id=%s AND p.is_approved=0
+                WHERE p.farmer_id IN ({fmt}) AND p.is_approved = 0
                 ORDER BY p.created_at DESC
-            """, (sec_id,))
+            """, tuple(farmer_ids))
             pending = cur.fetchall()
 
-            cur.execute("""
+            cur.execute(f"""
                 SELECT f.farmer_id as id, f.full_name as name, f.email, f.phone, 
                        fm.farm_size_are, ROUND(fm.farm_size_are/100, 2) as farm_size_ha
                 FROM farmers f
@@ -619,25 +686,25 @@ def get_sector_dashboard(sector_name: str) -> dict:
                 ORDER BY f.created_at DESC
             """, (sec_id,))
             farmers = cur.fetchall()
-            
-            cur.execute("""
+
+            cur.execute(f"""
                 SELECT p.prediction_id, p.farmer_id, f.full_name as farmer_name, 
-                       p.crop_type as crop, s.sector_name as sector,
-                       p.yield_per_are_kg, p.total_yield_kg, p.created_at as timestamp, p.is_approved
+                       p.crop_type as crop, %s as sector,
+                       p.yield_per_are_kg, p.total_yield_kg, p.created_at as timestamp,
+                       p.is_approved, p.season, p.yield_grade
                 FROM predictions p
                 JOIN farmers f ON p.farmer_id = f.farmer_id
-                JOIN sectors s ON p.sector_id = s.sector_id
-                WHERE p.sector_id=%s
+                WHERE p.farmer_id IN ({fmt})
                 ORDER BY p.created_at DESC
-            """, (sec_id,))
+            """, (sector_name, *farmer_ids))
             all_preds = cur.fetchall()
-            
-            cur.execute("""
+
+            cur.execute(f"""
                 SELECT season, ROUND(AVG(yield_per_are_kg),2) as avg_yield, COUNT(*) as count
                 FROM predictions
-                WHERE sector_id=%s
+                WHERE farmer_id IN ({fmt})
                 GROUP BY season
-            """, (sec_id,))
+            """, tuple(farmer_ids))
             seasons = cur.fetchall()
 
             return {
@@ -830,9 +897,8 @@ def get_sector_full_details(sector_id: int) -> dict:
             cur.execute("SELECT * FROM sectors WHERE sector_id=%s", (sector_id,))
             sector = cur.fetchone()
             if not sector: return {}
-            
-            # 2. Fetch farmers in this sector
-            # Linking via the farms table
+
+            # 2. Fetch farmers who have a farm in this sector
             cur.execute("""
                 SELECT DISTINCT f.*
                 FROM farmers f
@@ -840,27 +906,33 @@ def get_sector_full_details(sector_id: int) -> dict:
                 WHERE fm.sector_id = %s AND f.is_active = 1
             """, (sector_id,))
             farmers = cur.fetchall()
-            
-            # 3. Fetch predictions in this sector
-            cur.execute("""
-                SELECT p.*, f.full_name as farmer_name
-                FROM predictions p
-                JOIN farmers f ON p.farmer_id = f.farmer_id
-                WHERE p.sector_id = %s
-                ORDER BY p.created_at DESC
-            """, (sector_id,))
-            predictions = cur.fetchall()
-            
-            # 4. Filter and process
+
+            # 3. Get farmer_ids in this sector
+            farmer_ids = [f['farmer_id'] for f in farmers]
+
+            # 4. Fetch ALL predictions by those farmers
+            predictions = []
+            if farmer_ids:
+                fmt = ','.join(['%s'] * len(farmer_ids))
+                cur.execute(f"""
+                    SELECT p.*, f.full_name as farmer_name
+                    FROM predictions p
+                    JOIN farmers f ON p.farmer_id = f.farmer_id
+                    WHERE p.farmer_id IN ({fmt})
+                    ORDER BY p.created_at DESC
+                """, tuple(farmer_ids))
+                predictions = cur.fetchall()
+
+            # 5. Serialize
             clean_preds = []
             for r in predictions:
                 d = {}
-                for k,v in r.items():
+                for k, v in r.items():
                     if hasattr(v, 'isoformat'): d[k] = v.isoformat()
                     elif hasattr(v, '__float__') and not isinstance(v, (int, str, bool, type(None))): d[k] = float(v)
                     else: d[k] = v
                 clean_preds.append(d)
-            
+
             return {
                 'sector': sector,
                 'farmers': list(farmers),

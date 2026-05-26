@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { T, API_BASE, fmtDate, CROP_BENCH } from '../../constants/constants';
 
-export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setSelectedPred, officer }) {
+export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setSelectedPred, officer, autoAdvice, onAdviceUsed }) {
   const t = T[lang];
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(autoAdvice ? 'advice' : 'profile');
   const [showAdviceForm, setShowAdviceForm] = useState(false);
   const [adviceSubject, setAdviceSubject] = useState('');
-  const [adviceMsg, setAdviceMsg] = useState('');
-  const [adviceType, setAdviceType] = useState('general');
+  const [adviceMsg, setAdviceMsg] = useState(autoAdvice?.msg || '');
+  const [adviceType, setAdviceType] = useState('alert');
   const [status, setStatus] = useState(null);
   const [sending, setSending] = useState(false);
 
@@ -67,6 +67,7 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
       if (d.success) {
         setStatus({ type: 'ok', msg: lang === 'en' ? 'Advice sent successfully!' : 'Inama yoherejwe neza!' });
         setAdviceMsg(''); setAdviceSubject('');
+        if (onAdviceUsed) onAdviceUsed();
         setTimeout(() => { setShowAdviceForm(false); setStatus(null); }, 2500);
       } else {
         setStatus({ type: 'err', msg: d.error });
@@ -242,6 +243,22 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
 
       {activeTab === 'advice' && (
         <div className="so-detail-section fade-up">
+          {/* Alert banner if coming from underperforming */}
+          {autoAdvice && (
+            <div style={{ background:'linear-gradient(135deg,#fff5f5,#fee2e2)', border:'1.5px solid #fca5a5', borderRadius:14, padding:'14px 18px', marginBottom:16, display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ width:36, height:36, background:'#dc2626', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <i className="bi bi-exclamation-triangle-fill" style={{ color:'white', fontSize:16 }}></i>
+              </div>
+              <div>
+                <div style={{ fontWeight:800, fontSize:13, color:'#7f1d1d', marginBottom:2 }}>
+                  {lang==='en'?'⚠️ Underperforming Farm Alert':'⚠️ Akarima Gafite Ikibazo'}
+                </div>
+                <div style={{ fontSize:12, color:'#991b1b' }}>
+                  {lang==='en'?'Advice pre-filled based on yield gap. Review and send.':'Inama yuzurijwe bigendeye ku musaruro muke. Suzuma hanyuma uohereze.'}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="so-advice-form-card">
             <div className="so-advice-form-header">
               <div className="so-advice-form-icon"><i className="bi bi-chat-dots-fill"></i></div>

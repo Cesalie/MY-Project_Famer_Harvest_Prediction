@@ -98,7 +98,9 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
       <div className="sidebar-footer">
         <div className="sidebar-user" onClick={onLogout} title={t.logout}>
           <div className="sidebar-avatar">
-            {isFarmer ? <><i className="bi bi-person"></i>‍<i className="bi bi-tree"></i></> : <i className="bi bi-building"></i>}
+            {isFarmer
+              ? <span style={{ fontSize: 13, fontWeight: 800 }}>{(user.name || 'F').charAt(0).toUpperCase()}</span>
+              : <i className="bi bi-building"></i>}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sidebar-user-name" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.name || user.full_name}</div>

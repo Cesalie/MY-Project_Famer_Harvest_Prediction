@@ -23,8 +23,8 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
   const [selectedSectors, setSelectedSectors] = useState([]);
   const [cropFilter, setCropFilter]     = useState('All');
 
-  const totalPreds = dashData?.summary?.total_predictions || dashData?.recent_preds?.length || 0;
-  const totalFarmers = dashData?.summary?.total_farmers || dashData?.farmer_count || 0;
+  const totalPreds = dashData?.summary?.total_predictions ?? dashData?.total_predictions ?? 0;
+  const totalFarmers = dashData?.summary?.total_farmers ?? dashData?.farmer_count ?? 0;
 
   // Auto-generate advice based on sector performance
   const autoAdvice = (sectorName, crop, val) => {

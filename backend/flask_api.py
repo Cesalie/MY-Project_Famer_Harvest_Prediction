@@ -1261,29 +1261,36 @@ def officer_dashboard():
 
             if sector:
                 data = get_sector_dashboard(sector)
-                # Map to keys expected by frontend Overview
                 clean_farmers = [clean_row(f) for f in data.get('farmers', [])]
                 clean_all_preds = [clean_row(p) for p in data.get('all_predictions', [])]
-                
+
+                # Ensure 'crop' field exists (DB returns crop_type)
+                for p in clean_all_preds:
+                    if 'crop' not in p or not p['crop']:
+                        p['crop'] = p.get('crop_type', '')
+
                 # Derive crop stats for this sector
                 crop_stats = {}
                 for p in clean_all_preds:
-                    c = p.get('crop')
+                    c = p.get('crop') or p.get('crop_type')
+                    if not c: continue
                     if c not in crop_stats: crop_stats[c] = []
-                    crop_stats[c].append(p.get('yield_per_are_kg', 0))
-                
+                    v = p.get('yield_per_are_kg', 0)
+                    if v: crop_stats[c].append(float(v))
+
                 final_crop_data = {}
                 for c, yields in crop_stats.items():
                     final_crop_data[c] = {
-                        'avg_yield_kg_are': sum(yields) / len(yields) if yields else 0,
+                        'avg_yield_kg_are': round(sum(yields) / len(yields), 2) if yields else 0,
                         'prediction_count': len(yields)
                     }
 
                 return jsonify({
-                    'success': True, 
+                    'success': True,
                     'farmer_count': data.get('total_farmers', 0),
+                    'total_predictions': data.get('total_predictions', len(clean_all_preds)),
                     'farmer_list': clean_farmers,
-                    'recent_preds': clean_all_preds[:5], 
+                    'recent_preds': clean_all_preds[:5],
                     'crop_data': final_crop_data,
                     'all_predictions': clean_all_preds,
                     'pending_predictions': [clean_row(p) for p in data.get('pending_predictions', [])],
@@ -1327,12 +1334,13 @@ def officer_dashboard():
                     cur.execute(
                         "SELECT f.farmer_id as id, f.full_name as name, "
                         "s.sector_name as sector, "
-                        "ROUND(f.farm_size_are/100,2) as farm_size_ha, "
-                        "f.farm_size_are, "
+                        "ROUND(fm.farm_size_are/100,2) as farm_size_ha, "
+                        "fm.farm_size_are, "
                         "COUNT(p.prediction_id) as prediction_count, "
                         "ROUND(AVG(p.yield_per_are_kg),2) as avg_yield "
                         "FROM farmers f "
-                        "JOIN sectors s ON f.sector_id=s.sector_id "
+                        "LEFT JOIN farms fm ON f.farmer_id=fm.farmer_id "
+                        "LEFT JOIN sectors s ON fm.sector_id=s.sector_id "
                         "LEFT JOIN predictions p ON f.farmer_id=p.farmer_id "
                         "WHERE f.is_active=1 "
                         "GROUP BY f.farmer_id "
