@@ -70,8 +70,25 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
         </div>
 
         {error && (
-          <div className="alert alert-err" style={{ fontSize: 13, padding: "10px", marginBottom: "16px", borderRadius: "6px" }}>
-            <i className="bi bi-exclamation-triangle"></i> {error}
+          <div style={{
+            background: 'linear-gradient(135deg, #fff5f5, #fee2e2)',
+            border: '1.5px solid #fca5a5',
+            borderRadius: 14,
+            padding: '16px 20px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}>
+            <div style={{ width: 34, height: 34, background: '#dc2626', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <i className="bi bi-exclamation-lg" style={{ color: 'white', fontSize: 16 }}></i>
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: '#7f1d1d', marginBottom: 3 }}>
+                {lang === 'rw' ? 'Habaye Ikibazo' : 'Login Error'}
+              </div>
+              <div style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.5 }}>{error}</div>
+            </div>
           </div>
         )}
 

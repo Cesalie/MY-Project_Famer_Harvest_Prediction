@@ -81,7 +81,11 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
 
       if (data.success) {
         setGeneratedPw(data.generated_password);
-        setSuccess(`Account created! Your auto-generated password is: ${data.generated_password}. Please copy it before logging in.`);
+        setSuccess(
+          lang === "rw"
+            ? "Konti yawe yafunguwe neza! Reba email yawe kugira ngo ubone amakuru yo kwinjira (ijambo ry'ibanga). Niba email itaboneka, reba spam/junk folder."
+            : "Account created successfully! Please check your email for your login credentials (password). If you don't see it, check your spam/junk folder."
+        );
       } else {
         setError(data.error || "Registration failed.");
       }
@@ -119,13 +123,58 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
         </div>
 
         {error && (
-          <div className="alert alert-err" style={{ fontSize: 13, padding: "10px", marginBottom: "16px", borderRadius: "6px" }}>
-            <i className="bi bi-exclamation-triangle"></i> {error}
+          <div style={{
+            background: 'linear-gradient(135deg, #fff5f5, #fee2e2)',
+            border: '1.5px solid #fca5a5',
+            borderRadius: 14,
+            padding: '16px 20px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}>
+            <div style={{ width: 34, height: 34, background: '#dc2626', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <i className="bi bi-exclamation-lg" style={{ color: 'white', fontSize: 16 }}></i>
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: '#7f1d1d', marginBottom: 3 }}>
+                {lang === 'rw' ? 'Habaye Ikibazo' : 'Registration Error'}
+              </div>
+              <div style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.5 }}>{error}</div>
+            </div>
           </div>
         )}
         {success && (
-          <div className="alert alert-ok" style={{ fontSize: 13, padding: "10px", marginBottom: "16px", borderRadius: "6px", userSelect: "text" }}>
-            <i className="bi bi-check-circle"></i> {success}
+          <div style={{
+            background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+            border: '1.5px solid #86efac',
+            borderRadius: 14,
+            padding: '18px 20px',
+            marginBottom: 16,
+          }}>
+            {/* Icon + Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 36, height: 36, background: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i className="bi bi-check-lg" style={{ color: 'white', fontSize: 18 }}></i>
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#14532d' }}>
+                {lang === 'rw' ? 'Konti Yafunguwe Neza!' : 'Account Created Successfully!'}
+              </div>
+            </div>
+            {/* Message */}
+            <p style={{ fontSize: 13, color: '#166534', margin: '0 0 12px', lineHeight: 1.6 }}>
+              {success}
+            </p>
+            {/* Email highlight */}
+            <div style={{ background: 'white', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <i className="bi bi-envelope-fill" style={{ color: '#16a34a', fontSize: 18, flexShrink: 0 }}></i>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                  {lang === 'rw' ? 'Email Yoherejwe kuri' : 'Credentials sent to'}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>{email}</div>
+              </div>
+            </div>
           </div>
         )}
 
