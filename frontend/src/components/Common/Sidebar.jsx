@@ -40,10 +40,15 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
       );
     } else {
       // Officer roles
-      const officerItems = [
+      const officerItems = isSector ? [
+        { id: "overview",     icon: <i className="bi bi-speedometer2"></i>,      label: t.overview },
+        { id: "farmers",      icon: <i className="bi bi-people"></i>,             label: lang === "en" ? "Farmers" : "Abahinzi" },
+        { id: "predictions",  icon: <i className="bi bi-clipboard2-data"></i>,    label: lang === "en" ? "Predictions" : "Ibisobanuro" },
+        { id: "reports",      icon: <i className="bi bi-file-earmark-text"></i>,  label: t.reportsTab },
+      ] : [
         { id: "overview", icon: <i className="bi bi-bar-chart-line"></i>, label: t.overview },
-        { id: "sectors", icon: <i className="bi bi-geo-alt"></i>, label: isSector ? "Farmers" : t.sectorsTab },
-        { id: "reports", icon: <i className="bi bi-file-earmark-text"></i>, label: t.reportsTab },
+        { id: "sectors",  icon: <i className="bi bi-geo-alt"></i>,        label: t.sectorsTab },
+        { id: "reports",  icon: <i className="bi bi-file-earmark-text"></i>, label: t.reportsTab },
       ];
 
       if (isDistrict) {

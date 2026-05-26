@@ -1,21 +1,28 @@
 import React, { useState } from 'react';
-import { T, API_BASE, CROP_ICON, fmtDate } from '../../constants/constants';
+import { T, API_BASE, CROP_ICON, fmtDate, CROP_BENCH } from '../../constants/constants';
 
 export default function PredictionDetailView({ prediction, onBack, lang, user, onUpdate }) {
   const t = T[lang];
   const p = prediction;
-  const [actualYield, setActualYield] = useState(p.actual_yield_kg_are || "");
+  const [actualYield, setActualYield] = useState(p.actual_yield_kg_are || '');
   const [harvestDate, setHarvestDate] = useState(p.actual_harvest_date || new Date().toISOString().split('T')[0]);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const bench = CROP_BENCH[p.crop || p.crop_type] || 20;
+  const yieldVal = parseFloat(p.yield_per_are_kg || 0);
+  const pctVsBench = bench ? ((yieldVal - bench) / bench * 100).toFixed(1) : 0;
+  const gradeColor = { Excellent: '#16a34a', Good: '#0284c7', Average: '#d97706', 'Below Average': '#dc2626' }[p.yield_grade] || '#64748b';
+  const gradeBg = { Excellent: '#dcfce7', Good: '#e0f2fe', Average: '#fef3c7', 'Below Average': '#fee2e2' }[p.yield_grade] || '#f1f5f9';
 
   const handleSaveActual = async () => {
     if (!actualYield) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/predictions/record-actual`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prediction_id: p.prediction_id || p.id,
           actual_yield: actualYield,
@@ -24,125 +31,301 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
       });
       const data = await res.json();
       if (data.success) {
-        setStatus({ type: "ok", msg: "Harvest recorded!" });
+        setStatus({ type: 'ok', msg: lang === 'en' ? 'Actual harvest recorded!' : 'Isarura nyaryo ryanditswe!' });
         if (onUpdate) onUpdate({ ...p, actual_yield_kg_are: actualYield, actual_harvest_date: harvestDate });
       } else {
-        setStatus({ type: "err", msg: data.error });
+        setStatus({ type: 'err', msg: data.error });
       }
-    } catch (e) {
-      setStatus({ type: "ok", msg: "[LOCAL SIMULATION] Harvest recorded locally!" });
+    } catch {
+      setStatus({ type: 'ok', msg: lang === 'en' ? 'Recorded locally (offline mode)' : 'Byanditswe (offline mode)' });
       if (onUpdate) onUpdate({ ...p, actual_yield_kg_are: actualYield, actual_harvest_date: harvestDate });
     }
     setSaving(false);
   };
-  
+
+  const accuracy = p.actual_yield_kg_are || actualYield
+    ? ((1 - Math.abs(yieldVal - parseFloat(p.actual_yield_kg_are || actualYield)) / yieldVal) * 100).toFixed(1)
+    : null;
+
   return (
     <div className="fade-up">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <button className="back-icon" onClick={onBack}>←</button>
-        <div className="sec-hd" style={{ margin: 0 }}><i className="bi bi-file-earmark-text"></i> Prediction Details</div>
-      </div>
-
-      <div className="card card-hero" style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Prediction ID</div>
-            <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "monospace" }}>{p.prediction_id || p.id}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Date</div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{fmtDate(p.timestamp || p.created_at)}</div>
-          </div>
+      {/* Back */}
+      <div className="so-detail-toprow">
+        <button className="so-back-btn" onClick={onBack}>
+          <i className="bi bi-arrow-left"></i> {lang === 'en' ? 'Back to Predictions' : 'Subira ku Bisobanuro'}
+        </button>
+        <div className="so-pred-id-badge">
+          <i className="bi bi-hash"></i> {p.prediction_id || p.id}
         </div>
       </div>
 
-      <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 16 }}>
+      {/* Hero */}
+      <div className="so-pred-hero">
+        <div className="so-pred-hero-left">
+          <div className="so-pred-hero-crop-icon">
+            <i className={`bi ${CROP_ICON[p.crop || p.crop_type] || 'bi-flower2'}`}></i>
+          </div>
+          <div>
+            <div className="so-pred-hero-crop">{p.crop || p.crop_type}</div>
+            <div className="so-pred-hero-meta">
+              <span><i className="bi bi-geo-alt"></i> {p.sector || p.sector_name}</span>
+              <span><i className="bi bi-calendar3"></i> {p.season}</span>
+              <span><i className="bi bi-person"></i> {p.farmer_name || p.farmer_id}</span>
+            </div>
+          </div>
+        </div>
+        <div className="so-pred-hero-right">
+          <div className="so-pred-hero-yield">{yieldVal.toFixed(1)}</div>
+          <div className="so-pred-hero-unit">kg/are</div>
+          {p.yield_grade && (
+            <span className="so-grade-badge" style={{ background: gradeBg, color: gradeColor, marginTop: 8 }}>
+              {p.yield_grade}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* KPI Row */}
+      <div className="so-pred-kpi-row">
         {[
-          { icon: <i className={`bi ${CROP_ICON[p.crop || p.crop_type] || "bi-flower2"}`} style={{ color: "var(--g700)" }}></i>, val: p.crop || p.crop_type, lbl: "Estimated Crop" },
-          { icon: (<i className="bi bi-rulers" style={{ color: "var(--g700)" }}></i>), val: `${p.area_planted_are || p.area_planted_ha * 100 || 0} are`, lbl: "Area Planted" },
-          { icon: (<i className="bi bi-tree" style={{ color: "var(--g700)" }}></i>), val: `${p.yield_per_are_kg} kg/are`, lbl: "Predicted Yield" },
-          { icon: (<i className="bi bi-cash-stack" style={{ color: "var(--g700)" }}></i>), val: `${p.total_yield_kg} kg`, lbl: "Total Harvest" }
-        ].map(item => (
-          <div key={item.lbl} className="stat-box" style={{ background: "white", padding: 12, borderRadius: 12, border: "1px solid var(--s200)" }}>
-             <div style={{ fontSize: 24 }}>{item.icon}</div>
-             <div className="stat-val" style={{ fontSize: 16, fontWeight: 800 }}>{item.val}</div>
-             <div className="stat-lbl" style={{ fontSize: 10, color: "var(--s500)" }}>{item.lbl}</div>
+          { icon: 'bi-graph-up', val: `${yieldVal.toFixed(1)} kg/are`, lbl: lang === 'en' ? 'Predicted Yield' : 'Umusaruro Wateganyijwe', color: '#16a34a', bg: '#dcfce7' },
+          { icon: 'bi-box-seam', val: `${parseFloat(p.total_yield_kg || 0).toFixed(0)} kg`, lbl: lang === 'en' ? 'Total Harvest' : 'Isarura Ryose', color: '#0284c7', bg: '#e0f2fe' },
+          { icon: 'bi-rulers', val: `${p.area_planted_are || 0} are`, lbl: lang === 'en' ? 'Area Planted' : 'Akarima Gatewe', color: '#d97706', bg: '#fef3c7' },
+          { icon: 'bi-shield-check', val: `${p.confidence_pct || 84.8}%`, lbl: lang === 'en' ? 'Confidence' : 'Inyemeza', color: '#7c3aed', bg: '#ede9fe' },
+        ].map((k, i) => (
+          <div key={i} className="so-pred-kpi">
+            <div className="so-pred-kpi-icon" style={{ background: k.bg, color: k.color }}>
+              <i className={`bi ${k.icon}`}></i>
+            </div>
+            <div className="so-pred-kpi-val">{k.val}</div>
+            <div className="so-pred-kpi-lbl">{k.lbl}</div>
           </div>
         ))}
       </div>
 
-      {/* Actual Harvest Form */}
-      {(user?.role === "officer" || user?.role === "sector" || user?.role === "district") && (
-        <div className="card" style={{ marginBottom: 16, border: "2px solid var(--g300)", background: "var(--g50)" }}>
-          <div className="sec-hd" style={{ color: "var(--g800)" }}><i className="bi bi-check2-square"></i> Record Actual Harvest Result</div>
-          {status && <div className={`alert alert-${status.type}`} style={{ marginBottom: 12, fontSize: 12 }}>{status.msg}</div>}
-          <div className="frow">
-            <div className="fgrp">
-              <label className="flabel">Actual Yield (kg/are)</label>
-              <input className="finput" type="number" step="0.1" value={actualYield} onChange={e => setActualYield(e.target.value)} placeholder="e.g. 24.5" />
-            </div>
-            <div className="fgrp">
-              <label className="flabel">Harvest Date</label>
-              <input className="finput" type="date" value={harvestDate} onChange={e => setHarvestDate(e.target.value)} />
-            </div>
+      {/* Benchmark comparison */}
+      <div className="so-bench-card">
+        <div className="so-bench-label">{lang === 'en' ? 'vs District Average' : 'vs Impuzandengo y\'Akarere'}</div>
+        <div className="so-bench-row">
+          <div className="so-bench-item">
+            <div className="so-bench-val" style={{ color: '#16a34a' }}>{yieldVal.toFixed(1)}</div>
+            <div className="so-bench-sub">{lang === 'en' ? 'This Prediction' : 'Iki Gisobanuro'}</div>
           </div>
-          <button className="btn btn-primary" onClick={handleSaveActual} disabled={saving || !actualYield} style={{ marginTop: 8 }}>
-            {saving ? <div className="spin" style={{ display: "inline-block", marginRight: 8 }} /> : <><i className="bi bi-save"></i> Save Actual Result</>}
+          <div className={`so-bench-vs ${parseFloat(pctVsBench) >= 0 ? 'pos' : 'neg'}`}>
+            {parseFloat(pctVsBench) >= 0 ? '+' : ''}{pctVsBench}%
+          </div>
+          <div className="so-bench-item">
+            <div className="so-bench-val" style={{ color: '#64748b' }}>{bench}</div>
+            <div className="so-bench-sub">{lang === 'en' ? 'District Avg' : 'Impuzandengo'}</div>
+          </div>
+        </div>
+        <div className="so-bench-bar-track">
+          <div className="so-bench-bar-fill" style={{ width: `${Math.min((yieldVal / (bench * 1.5)) * 100, 100)}%` }}></div>
+          <div className="so-bench-bar-marker" style={{ left: `${Math.min((bench / (bench * 1.5)) * 100, 100)}%` }}></div>
+        </div>
+      </div>
+
+      {/* Sub-section tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: '2px solid var(--s100)', paddingBottom: 0 }}>
+        {[
+          { key: 'overview', label: lang === 'en' ? 'Overview' : 'Incamake' },
+          { key: 'inputs', label: lang === 'en' ? 'Farm Inputs' : 'Ibikoresho' },
+          { key: 'climate', label: lang === 'en' ? 'Climate' : 'Ibihe' },
+          { key: 'actual', label: lang === 'en' ? 'Record Actual' : 'Andika Nyaryo' },
+        ].map(({ key, label }) => (
+          <button key={key} onClick={() => setActiveTab(key)} style={{
+            padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
+            fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700,
+            color: activeTab === key ? 'var(--g700)' : 'var(--s400)',
+            borderBottom: activeTab === key ? '2px solid var(--g600)' : '2px solid transparent',
+            marginBottom: -2, transition: 'all .2s'
+          }}>
+            {label}
           </button>
-          
-          {(p.actual_yield_kg_are || actualYield) && (
-            <div style={{ marginTop: 15, paddingTop: 15, borderTop: "1px solid var(--g200)", display: "flex", alignItems: "center", gap: 15 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: "var(--s500)", textTransform: "uppercase" }}>Accuracy Gap</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--g600)" }}>
-                  {Math.abs(p.yield_per_are_kg - (p.actual_yield_kg_are || actualYield)).toFixed(2)} kg/are 
-                  <span style={{ fontSize: 12, fontWeight: 500, marginLeft: 6 }}>
-                    ({((1 - Math.abs(p.yield_per_are_kg - (p.actual_yield_kg_are || actualYield)) / p.yield_per_are_kg) * 100).toFixed(1)}% Accuracy)
-                  </span>
+        ))}
+      </div>
+
+      {/* Tab: Overview */}
+      {activeTab === 'overview' && (
+        <div className="so-detail-section fade-up">
+          <div className="so-info-grid">
+            {[
+              { icon: 'bi-flower2', lbl: lang === 'en' ? 'Crop Type' : 'Igihingwa', val: p.crop || p.crop_type },
+              { icon: 'bi-geo-alt', lbl: lang === 'en' ? 'Sector' : 'Umurenge', val: p.sector || p.sector_name },
+              { icon: 'bi-sun', lbl: lang === 'en' ? 'Season' : 'Igihe cy\'Ihinga', val: p.season },
+              { icon: 'bi-calendar', lbl: lang === 'en' ? 'Planting Date' : 'Itariki yo Gutera', val: fmtDate(p.planting_date) || '—' },
+              { icon: 'bi-person', lbl: lang === 'en' ? 'Farmer' : 'Umuhinzi', val: p.farmer_name || p.farmer_id },
+              { icon: 'bi-cpu', lbl: lang === 'en' ? 'Model Used' : 'Modeli Yakoreshejwe', val: p.model_used || 'Random Forest' },
+              { icon: 'bi-clock', lbl: lang === 'en' ? 'Prediction Date' : 'Itariki y\'Igisobanuro', val: fmtDate(p.created_at || p.timestamp) },
+              { icon: 'bi-hash', lbl: 'Prediction ID', val: p.prediction_id || p.id },
+            ].map(item => (
+              <div key={item.lbl} className="so-info-item">
+                <div className="so-info-icon"><i className={`bi ${item.icon}`}></i></div>
+                <div>
+                  <div className="so-info-lbl">{item.lbl}</div>
+                  <div className="so-info-val">{item.val}</div>
                 </div>
               </div>
-              <div style={{ fontSize: 30, color: "var(--g500)" }}>
-                <i className="bi bi-check-circle"></i>
+            ))}
+          </div>
+
+          {/* Recommendations */}
+          {p.recommendations?.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <div className="so-section-hd" style={{ marginBottom: 12 }}>
+                <span><i className="bi bi-lightbulb-fill"></i> {t.recommendations}</span>
               </div>
+              {p.recommendations.map((rec, i) => (
+                <div key={i} className={`rec rec-${rec.type}`} style={{ marginBottom: 10 }}>
+                  <div className="rec-cat">
+                    <i className={`bi ${rec.icon || 'bi-info-circle'}`} style={{ marginRight: 6 }}></i>
+                    {rec.category}
+                  </div>
+                  <div className="rec-text">{lang === 'rw' && rec.message_rw ? rec.message_rw : rec.message}</div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Inputs Overview */}
-      <div className="p-details-title" style={{ fontSize: 13, fontWeight: 800, color: "var(--s400)", textTransform: "uppercase", letterSpacing: ".5px", margin: "18px 0 8px" }}>Agricultural Inputs</div>
-      <div className="card" style={{ padding: "16px 20px", marginBottom: 16 }}>
-        {[
-          { lbl: "Target Crop", val: p.crop || p.crop_type },
-          { lbl: "Sector Location", val: p.sector },
-          { lbl: "Growing Season", val: p.season },
-          { lbl: "Soil Type", val: p.soil_type || "N/A" },
-          { lbl: "Fertilizer Applied", val: p.fertilizer_used ? "Yes" : "No" },
-          { lbl: "Irrigation Support", val: p.irrigation_used ? "Yes" : "No" },
-          { lbl: "Previous Crop", val: p.previous_crop || "None" }
-        ].map(item => (
-          <div key={item.lbl} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--s100)" }}>
-            <span style={{ fontSize: 13, color: "var(--s500)" }}>{item.lbl}</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--s900)" }}>{item.val}</span>
+      {/* Tab: Farm Inputs */}
+      {activeTab === 'inputs' && (
+        <div className="so-detail-section fade-up">
+          <div className="so-info-grid">
+            {[
+              { icon: 'bi-rulers', lbl: lang === 'en' ? 'Area Planted' : 'Akarima Gatewe', val: `${p.area_planted_are || 0} are` },
+              { icon: 'bi-flower2', lbl: lang === 'en' ? 'Soil Type' : 'Ubwoko bw\'Ubutaka', val: p.soil_type || p.inputs?.soil_type || '—' },
+              { icon: 'bi-check-circle', lbl: lang === 'en' ? 'Fertilizer Used' : 'Ifumbire Yakoreshejwe', val: p.fertilizer_used || (p.inputs?.fertilizer_used ? 'Yes' : 'No') },
+              { icon: 'bi-droplet', lbl: lang === 'en' ? 'Irrigation Used' : 'Kuhira Byakoreshejwe', val: p.irrigation_used || (p.inputs?.irrigation_used ? 'Yes' : 'No') },
+              { icon: 'bi-arrow-repeat', lbl: lang === 'en' ? 'Previous Crop' : 'Igihingwa cy\'Imbere', val: p.previous_crop || '—' },
+              { icon: 'bi-bug', lbl: lang === 'en' ? 'Pest Pressure' : 'Udukoko', val: p.pest_pressure || '—' },
+              { icon: 'bi-people', lbl: lang === 'en' ? 'Labor Availability' : 'Abakozi', val: p.labor_availability || '—' },
+              { icon: 'bi-person-check', lbl: lang === 'en' ? 'Extension Access' : 'Ubufasha bw\'Agronome', val: p.extension_access || '—' },
+            ].map(item => (
+              <div key={item.lbl} className="so-info-item">
+                <div className="so-info-icon"><i className={`bi ${item.icon}`}></i></div>
+                <div>
+                  <div className="so-info-lbl">{item.lbl}</div>
+                  <div className="so-info-val">{item.val}</div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* Climate Data */}
-      <div className="p-details-title" style={{ fontSize: 13, fontWeight: 800, color: "var(--s400)", textTransform: "uppercase", letterSpacing: ".5px", margin: "18px 0 8px" }}>Climate Variables (at planting)</div>
-      <div className="card" style={{ padding: "16px 20px", marginBottom: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-         {[
-           { lbl: "Temp", val: `${p.temperature || p.avg_temperature || "-"}°C` },
-           { lbl: "Rainfall", val: `${p.rainfall || p.total_rainfall_mm || "-"}mm` },
-           { lbl: "Humidity", val: `${p.humidity || p.humidity_pct || "-"}%` },
-           { lbl: "Sunshine", val: `${p.sunshine || p.sunshine_hrs || "-"}h` }
-         ].map(item => (
-           <div key={item.lbl}>
-              <div style={{ fontSize: 11, color: "var(--s500)", textTransform: "uppercase" }}>{item.lbl}</div>
-              <div style={{ fontSize: 15, fontWeight: 800 }}>{item.val}</div>
-           </div>
-         ))}
-      </div>
+      {/* Tab: Climate */}
+      {activeTab === 'climate' && (
+        <div className="so-detail-section fade-up">
+          <div className="so-climate-grid">
+            {[
+              { icon: 'bi-thermometer-half', lbl: t.temperature, val: `${p.avg_temperature || p.inputs?.temperature || '—'}°C`, color: '#dc2626', bg: '#fee2e2' },
+              { icon: 'bi-cloud-rain', lbl: t.rainfall, val: `${p.total_rainfall_mm || p.inputs?.rainfall || '—'} mm`, color: '#0284c7', bg: '#e0f2fe' },
+              { icon: 'bi-droplet-half', lbl: t.humidity, val: `${p.humidity_pct || p.inputs?.humidity || '—'}%`, color: '#0891b2', bg: '#cffafe' },
+              { icon: 'bi-sun', lbl: t.sunshine, val: `${p.sunshine_hrs || p.inputs?.sunshine || '—'} hrs/day`, color: '#d97706', bg: '#fef3c7' },
+            ].map((c, i) => (
+              <div key={i} className="so-climate-card">
+                <div className="so-climate-icon" style={{ background: c.bg, color: c.color }}>
+                  <i className={`bi ${c.icon}`}></i>
+                </div>
+                <div className="so-climate-val">{c.val}</div>
+                <div className="so-climate-lbl">{c.lbl}</div>
+              </div>
+            ))}
+          </div>
+          <div className="so-climate-note">
+            <i className="bi bi-info-circle"></i>
+            {lang === 'en'
+              ? 'Climate data auto-loaded from Bugesera historical averages at planting time.'
+              : 'Amakuru y\'ibihe yafashwe bwite kuva ku makuru ya Bugesera igihe cyo gutera.'}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Record Actual */}
+      {activeTab === 'actual' && (
+        <div className="so-detail-section fade-up">
+          <div className="so-actual-card">
+            <div className="so-actual-header">
+              <div className="so-actual-icon"><i className="bi bi-check2-square"></i></div>
+              <div>
+                <div className="so-actual-title">{lang === 'en' ? 'Record Actual Harvest Result' : 'Andika Isarura Nyaryo'}</div>
+                <div className="so-actual-sub">
+                  {lang === 'en'
+                    ? 'Compare predicted vs actual yield to improve model accuracy'
+                    : 'Geranya umusaruro wateganyijwe n\'umusaruro nyaryo kugira ngo wongerezwe ubushobozi bwa modeli'}
+                </div>
+              </div>
+            </div>
+
+            {status && (
+              <div className={`so-status-alert ${status.type}`}>
+                <i className={`bi ${status.type === 'ok' ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill'}`}></i>
+                {status.msg}
+              </div>
+            )}
+
+            <div className="frow">
+              <div className="fgrp">
+                <label className="flabel">{lang === 'en' ? 'Actual Yield (kg/are)' : 'Umusaruro Nyaryo (kg/are)'}</label>
+                <input
+                  className="finput"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={actualYield}
+                  onChange={e => setActualYield(e.target.value)}
+                  placeholder="e.g. 22.5"
+                />
+              </div>
+              <div className="fgrp">
+                <label className="flabel">{lang === 'en' ? 'Harvest Date' : 'Itariki yo Gusarura'}</label>
+                <input
+                  className="finput"
+                  type="date"
+                  value={harvestDate}
+                  onChange={e => setHarvestDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Accuracy Preview */}
+            {actualYield && (
+              <div className="so-accuracy-preview">
+                <div className="so-accuracy-row">
+                  <div className="so-accuracy-item">
+                    <div className="so-accuracy-lbl">{lang === 'en' ? 'Predicted' : 'Wateganyijwe'}</div>
+                    <div className="so-accuracy-val green">{yieldVal.toFixed(1)} kg/are</div>
+                  </div>
+                  <div className="so-accuracy-arrow"><i className="bi bi-arrow-left-right"></i></div>
+                  <div className="so-accuracy-item">
+                    <div className="so-accuracy-lbl">{lang === 'en' ? 'Actual' : 'Nyaryo'}</div>
+                    <div className="so-accuracy-val blue">{parseFloat(actualYield).toFixed(1)} kg/are</div>
+                  </div>
+                  <div className="so-accuracy-item">
+                    <div className="so-accuracy-lbl">{lang === 'en' ? 'Model Accuracy' : 'Ubushobozi bwa Modeli'}</div>
+                    <div className="so-accuracy-val" style={{ color: parseFloat(accuracy) >= 85 ? '#16a34a' : '#d97706' }}>
+                      {accuracy}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              className="btn btn-primary"
+              onClick={handleSaveActual}
+              disabled={saving || !actualYield}
+              style={{ marginTop: 8 }}
+            >
+              {saving
+                ? <><div className="spin" style={{ display: 'inline-block', marginRight: 8 }} /> {lang === 'en' ? 'Saving…' : 'Kubika…'}</>
+                : <><i className="bi bi-save-fill"></i> {lang === 'en' ? 'Save Actual Result' : 'Bika Isarura Nyaryo'}</>}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
