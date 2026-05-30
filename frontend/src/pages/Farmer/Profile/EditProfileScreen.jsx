@@ -12,9 +12,39 @@ export default function EditProfileScreen({ user, onNavigate, setUser, lang, set
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ t: "", m: "" });
 
+  const normalizePhone = (value) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.startsWith('250') && digits.length === 12) {
+      return `0${digits.slice(3)}`;
+    }
+    return digits;
+  };
+
+  const isValidRwandaPhone = (value) => {
+    const normalized = normalizePhone(value);
+    const allowedPrefixes = ['072', '073', '074', '075', '078', '079'];
+    return normalized.length === 10 && normalized.startsWith('07') && allowedPrefixes.includes(normalized.slice(0, 3));
+  };
+
   const handleSave = async () => {
     setLoading(true); 
     setMsg({ t: "", m: "" });
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim())) {
+      setMsg({ t: "err", m: t.invalidEmail });
+      setLoading(false);
+      return;
+    }
+    if (!email.trim().toLowerCase().endsWith("@gmail.com")) {
+      setMsg({ t: "err", m: t.emailGmailRequired });
+      setLoading(false);
+      return;
+    }
+    if (!isValidRwandaPhone(phone)) {
+      setMsg({ t: "err", m: phone.replace(/\D/g, '').length !== 10 ? t.notValidPhone : t.invalidRwPhone });
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/update-profile`, {
         method: "POST", 
@@ -23,8 +53,8 @@ export default function EditProfileScreen({ user, onNavigate, setUser, lang, set
           user_id: user.id || user.farmer_id, 
           role: "farmer", 
           name, 
-          email,
-          phone,
+          email: email.trim().toLowerCase(),
+          phone: normalizePhone(phone),
           sector, 
           farm_size_ha: parseFloat(size) 
         })

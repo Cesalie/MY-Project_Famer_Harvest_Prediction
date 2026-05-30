@@ -198,12 +198,14 @@ CREATE INDEX IF NOT EXISTS idx_rec_pred ON recommendations(prediction_id);
 CREATE TABLE IF NOT EXISTS officer_advice (
     advice_id        INTEGER PRIMARY KEY AUTOINCREMENT,
     officer_id       TEXT    NOT NULL REFERENCES officers(officer_id) ON DELETE CASCADE,
+    recipient_officer_id TEXT REFERENCES officers(officer_id) ON DELETE SET NULL,
     farmer_id        TEXT    REFERENCES farmers(farmer_id) ON DELETE CASCADE,
     prediction_id    TEXT    REFERENCES predictions(prediction_id) ON DELETE SET NULL,
     sector_id        INTEGER REFERENCES sectors(sector_id) ON DELETE SET NULL,
     subject          TEXT    NOT NULL,
     message          TEXT    NOT NULL,
     advice_type      TEXT    CHECK (advice_type IN ('general','alert','recommendation','followup')),
+    is_deleted       INTEGER DEFAULT 0,
     is_read          INTEGER DEFAULT 0,
     created_at       TEXT    DEFAULT (datetime('now'))
 );
