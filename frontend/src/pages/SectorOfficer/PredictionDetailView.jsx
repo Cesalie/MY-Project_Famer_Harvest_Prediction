@@ -91,7 +91,7 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
           { icon: 'bi-graph-up', val: `${yieldVal.toFixed(1)} kg/are`, lbl: lang === 'en' ? 'Predicted Yield' : 'Umusaruro Wateganyijwe', color: '#16a34a', bg: '#dcfce7' },
           { icon: 'bi-box-seam', val: `${parseFloat(p.total_yield_kg || 0).toFixed(0)} kg`, lbl: lang === 'en' ? 'Total Harvest' : 'Isarura Ryose', color: '#0284c7', bg: '#e0f2fe' },
           { icon: 'bi-rulers', val: `${p.area_planted_are || 0} are`, lbl: lang === 'en' ? 'Area Planted' : 'Akarima Gatewe', color: '#d97706', bg: '#fef3c7' },
-          { icon: 'bi-shield-check', val: `${p.confidence_pct || 84.8}%`, lbl: lang === 'en' ? 'Confidence' : 'Inyemeza', color: '#7c3aed', bg: '#ede9fe' },
+          { icon: 'bi-shield-check', val: p.confidence_pct ? `${p.confidence_pct}%` : '…', lbl: lang === 'en' ? 'Confidence' : 'Inyemeza', color: '#7c3aed', bg: '#ede9fe' },
         ].map((k, i) => (
           <div key={i} className="so-pred-kpi">
             <div className="so-pred-kpi-icon" style={{ background: k.bg, color: k.color }}>

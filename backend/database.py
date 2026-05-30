@@ -3,11 +3,26 @@ database.py — MySQL database layer for Bugesera Harvest Prediction System
 Connects to XAMPP MySQL via PyMySQL
 """
 
+import json
+import os
 import pymysql
 import pymysql.cursors
 from datetime import datetime
 import secrets
 import string
+
+META_PATH = os.path.join(os.path.dirname(__file__), 'model_metadata.json')
+MODEL_METADATA = {}
+DEFAULT_MODEL_CONFIDENCE = 84.8
+try:
+    with open(META_PATH) as f:
+        MODEL_METADATA = json.load(f)
+        DEFAULT_MODEL_CONFIDENCE = round(
+            MODEL_METADATA.get('_perf', {}).get(MODEL_METADATA.get('best_model',''), {}).get('r2', MODEL_METADATA.get('r2_score', 0.85)) * 100,
+            1
+        )
+except Exception:
+    pass
 
 DB_CONFIG = {
     'host'     : 'localhost',
@@ -31,10 +46,26 @@ def init_db():
                 cur.execute("SELECT COUNT(*) as cnt FROM sectors")
                 row = cur.fetchone()
                 print(f"  [check-circle] MySQL connected — {row['cnt']} sectors found")
+        ensure_officer_advice_columns()
         return True
     except Exception as e:
         print(f"  [x-circle] MySQL error: {e}")
         return False
+
+
+def ensure_officer_advice_columns():
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SHOW COLUMNS FROM officer_advice LIKE 'recipient_officer_id'")
+                if not cur.fetchone():
+                    cur.execute("ALTER TABLE officer_advice ADD COLUMN recipient_officer_id VARCHAR(255) NULL")
+                cur.execute("SHOW COLUMNS FROM officer_advice LIKE 'is_deleted'")
+                if not cur.fetchone():
+                    cur.execute("ALTER TABLE officer_advice ADD COLUMN is_deleted TINYINT(1) DEFAULT 0")
+            conn.commit()
+    except Exception as e:
+        print(f"  [warn] officer_advice schema check skipped: {e}")
 
 
 def generate_password(length=8):
@@ -324,7 +355,7 @@ def save_prediction(pred: dict, recs: list) -> str:
                 pred.get('district_avg_kg_are'),
                 pred.get('pct_vs_average'),
                 pred.get('yield_grade'),
-                pred.get('confidence_pct', 84.8),
+                pred.get('confidence_pct', DEFAULT_MODEL_CONFIDENCE),
                 pred.get('model_used', 'Gradient Boosting'),
                 1 if pred.get('is_offline') else 0,
             ))
@@ -338,7 +369,7 @@ def save_prediction(pred: dict, recs: list) -> str:
             conn.commit()
     return pid
 
-def get_predictions(farmer_id: str = None, limit: int = 50, sector_id: int = None, unapproved_only: bool = False) -> list:
+def get_predictions(farmer_id: str = None, limit: int = 50, offset: int = 0, sector_id: int = None, unapproved_only: bool = False) -> list:
     with get_db() as conn:
         with conn.cursor() as cur:
             query = """
@@ -359,8 +390,9 @@ def get_predictions(farmer_id: str = None, limit: int = 50, sector_id: int = Non
             if unapproved_only:
                 query += " AND p.is_approved = 0"
                 
-            query += " ORDER BY p.created_at DESC LIMIT %s"
+            query += " ORDER BY p.created_at DESC LIMIT %s OFFSET %s"
             params.append(limit)
+            params.append(offset)
             
             cur.execute(query, tuple(params))
             rows = cur.fetchall()
@@ -596,7 +628,7 @@ def get_farmer_stats(farmer_id: str) -> dict:
             
             cur.execute("""
                 SELECT crop_type, season, yield_per_are_kg, total_yield_kg, yield_grade, created_at, is_approved
-                FROM predictions WHERE farmer_id=%s ORDER BY created_at DESC LIMIT 5
+                FROM predictions WHERE farmer_id=%s ORDER BY created_at DESC LIMIT 50
             """, (farmer_id,))
             recent = cur.fetchall()
             return {
@@ -624,7 +656,7 @@ def get_officer_dashboard() -> dict:
             return {
                 'total_farmers': farmer_count,
                 'total_predictions': pred_count,
-                'accuracy_pct': 84.8,
+                'accuracy_pct': DEFAULT_MODEL_CONFIDENCE,
                 'low_yield_alerts': list(alerts),
             }
 
@@ -753,21 +785,69 @@ def save_advice(officer_id: str, data: dict) -> int:
             cur.execute("SELECT officer_type, sector_id FROM officers WHERE officer_id=%s", (officer_id,))
             off = cur.fetchone()
             
-            # Use officer's sector if it's a sector officer
-            sector_id = off['sector_id'] if off and off['officer_type'] == 'sector' else None
-            # Or if it's specifically provided (e.g. from a filter)
-            if data.get('sector_id'): sector_id = data.get('sector_id')
+            recipient_officer_id = data.get('recipient_officer_id')
+            farmer_id = data.get('farmer_id')
+            prediction_id = data.get('prediction_id')
+            subject = data.get('subject', 'Advisory')
+            message = data.get('message', '')
+            advice_type = data.get('advice_type', 'general')
+
+            # Use officer's sector if it's a sector officer sending farmer advice
+            sector_id = None
+            if off and off['officer_type'] == 'sector':
+                sector_id = off['sector_id']
+            if data.get('sector_id'):
+                sector_id = data.get('sector_id')
             elif data.get('sector'):
                 cur.execute("SELECT sector_id FROM sectors WHERE sector_name=%s", (data.get('sector',''),))
                 sec = cur.fetchone()
                 if sec: sector_id = sec['sector_id']
 
             cur.execute("""
-                INSERT INTO officer_advice (officer_id, farmer_id, prediction_id, sector_id, subject, message, advice_type)
-                VALUES (%s,%s,%s,%s,%s,%s,%s)
-            """, (officer_id, data.get('farmer_id'), data.get('prediction_id'), sector_id, data.get('subject', 'Advisory'), data.get('message', ''), data.get('advice_type', 'general')))
+                INSERT INTO officer_advice (officer_id, recipient_officer_id, farmer_id, prediction_id, sector_id, subject, message, advice_type, is_deleted)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                officer_id,
+                recipient_officer_id,
+                farmer_id,
+                prediction_id,
+                sector_id,
+                subject,
+                message,
+                advice_type,
+                0
+            ))
             conn.commit()
             return cur.lastrowid
+
+
+def get_sent_advice(officer_id: str) -> list:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT a.*, o.full_name as sender_name, o.officer_type as sender_type,
+                       ro.full_name as recipient_name, ro.officer_type as recipient_type,
+                       s.sector_name as sector_name
+                FROM officer_advice a
+                JOIN officers o ON a.officer_id = o.officer_id
+                LEFT JOIN officers ro ON a.recipient_officer_id = ro.officer_id
+                LEFT JOIN sectors s ON a.sector_id = s.sector_id
+                WHERE a.officer_id=%s AND a.is_deleted=0
+                ORDER BY a.created_at DESC
+            """, (officer_id,))
+            return cur.fetchall()
+
+
+def revoke_advice(officer_id: str, advice_id: int) -> bool:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE officer_advice SET is_deleted=1 WHERE advice_id=%s AND officer_id=%s AND is_deleted=0",
+                (advice_id, officer_id)
+            )
+            conn.commit()
+            return cur.rowcount > 0
+
 
 def get_farmer_advice(farmer_id: str) -> list:
     with get_db() as conn:
@@ -787,9 +867,12 @@ def get_farmer_advice(farmer_id: str) -> list:
                 FROM officer_advice a
                 JOIN officers o ON a.officer_id = o.officer_id
                 LEFT JOIN sectors s ON o.sector_id = s.sector_id
-                WHERE a.farmer_id=%s 
-                   OR (a.farmer_id IS NULL AND a.sector_id IS NULL)
-                   OR (a.farmer_id IS NULL AND a.sector_id=%s)
+                WHERE a.is_deleted=0
+                  AND (
+                        a.farmer_id=%s 
+                     OR (a.farmer_id IS NULL AND a.sector_id IS NULL)
+                     OR (a.farmer_id IS NULL AND a.sector_id=%s)
+                  )
                 ORDER BY a.created_at DESC LIMIT 20
             """, (farmer_id, sector_id))
             return cur.fetchall()

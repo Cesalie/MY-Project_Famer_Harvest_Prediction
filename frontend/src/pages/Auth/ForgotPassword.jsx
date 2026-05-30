@@ -14,11 +14,21 @@ export default function ForgotPassword({ lang, setLang, onBack, isModal }) {
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState(1); // 1: Request, 2: Verify & Reset
 
+  const isValidGmail = (value) => {
+    const emailValue = value.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(emailValue) && emailValue.endsWith('@gmail.com');
+  };
+
   const handleRequestOtp = async () => {
     setError("");
     setSuccess("");
     if (!resetEmail.trim()) {
       setError(lang === "en" ? "Email is required." : "Iimeyili irakenewe.");
+      return;
+    }
+    if (!isValidGmail(resetEmail)) {
+      setError(lang === "en" ? "Please use a valid Gmail address." : "Koresha iimeyili ya Gmail ifatika.");
       return;
     }
     setLoading(true);

@@ -20,6 +20,8 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
   const [adviceSubject, setAdviceSubject] = useState('');
   const [sending, setSending]           = useState(false);
   const [adviceStatus, setAdviceStatus] = useState(null);
+  const [sentAdvice, setSentAdvice] = useState([]);
+  const [loadingSentAdvice, setLoadingSentAdvice] = useState(false);
   const [selectedSectors, setSelectedSectors] = useState([]);
   const [cropFilter, setCropFilter]     = useState('All');
 
@@ -44,6 +46,21 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
       : `BYIHUTIRWA: Umusaruro wa ${crop} muri ${sectorName} uri hasi cyane (${val} kg/are, ${pct.toFixed(0)}% munsi y'impuzandengo). Genda mu mirima vuba, reba udukoko/indwara, kandi tanga ifumbire y'ubufasha.`;
   };
 
+  const fetchSentAdvice = () => {
+    setLoadingSentAdvice(true);
+    fetch(`${API_BASE}/api/sent-advice?officer_id=${user.id || user.officer_id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setSentAdvice(data.advice || []);
+        setLoadingSentAdvice(false);
+      })
+      .catch(() => setLoadingSentAdvice(false));
+  };
+
+  React.useEffect(() => {
+    fetchSentAdvice();
+  }, []);
+
   const handleSendAdvice = async () => {
     if (!adviceMsg.trim() || !adviceTarget) return;
     setSending(true);
@@ -54,19 +71,36 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
           officer_id: user.id || user.officer_id,
           subject: adviceSubject || (lang === 'en' ? 'District Advisory' : 'Inama y\'Akarere'),
           message: adviceMsg,
-          target_group: adviceTarget === 'all_officers' ? 'All Farmers' : adviceTarget,
+          target_group: adviceTarget === 'all_officers' ? 'all_officers' : adviceTarget,
           advice_type: 'broadcast'
         })
       });
       const d = await res.json();
       setAdviceStatus({ type: d.success ? 'ok' : 'err', msg: d.success ? (lang === 'en' ? '✓ Advice sent to officer!' : '✓ Inama yoherejwe!') : d.error });
-      if (d.success) { setAdviceMsg(''); setAdviceSubject(''); }
+      if (d.success) { setAdviceMsg(''); setAdviceSubject(''); fetchSentAdvice(); }
     } catch {
       setAdviceStatus({ type: 'ok', msg: lang === 'en' ? '✓ Advice sent (offline mode)' : '✓ Inama yoherejwe (offline)' });
       setAdviceMsg(''); setAdviceSubject('');
     }
     setSending(false);
     setTimeout(() => setAdviceStatus(null), 4000);
+  };
+
+  const handleRevokeAdvice = async (adviceId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/revoke-advice`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ officer_id: user.id || user.officer_id, advice_id: adviceId })
+      });
+      const d = await res.json();
+      if (d.success) {
+        setSentAdvice((prev) => prev.filter((item) => (item.advice_id || item.id) !== adviceId));
+      } else {
+        setAdviceStatus({ type: 'err', msg: d.error || (lang === 'en' ? 'Unable to revoke advice' : 'Ntibyashobotse gukuraho inama') });
+      }
+    } catch {
+      setAdviceStatus({ type: 'err', msg: lang === 'en' ? 'Unable to revoke advice' : 'Ntibyashobotse gukuraho inama' });
+    }
   };
 
   return (
@@ -201,6 +235,34 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
             <button className="btn btn-primary" onClick={handleSendAdvice} disabled={sending || !adviceMsg.trim() || !adviceTarget}>
               {sending ? <><div className="spin" style={{ display:'inline-block', marginRight:8 }}/>{lang==='en'?'Sending…':'Kohereza…'}</> : <><i className="bi bi-send-fill"></i> {lang==='en'?'Send to Officer':'Ohereza ku Ofisiye'}</>}
             </button>
+
+            <div style={{ marginTop: 30 }}>
+              <h3 style={{ marginBottom: 14, fontSize: 14, fontWeight: 700 }}>{lang === 'en' ? 'Sent Advice' : 'Inama Zohererejwe'}</h3>
+              {loadingSentAdvice ? (
+                <div className="so-loading-list">
+                  {[1,2].map((n) => <div key={n} className="so-skeleton-row" style={{ height: 50 }} />)}
+                </div>
+              ) : sentAdvice.length === 0 ? (
+                <div className="so-empty-mini">{lang === 'en' ? 'No advice sent yet.' : 'Nta nama yoherejwe.'}</div>
+              ) : (
+                sentAdvice.slice(0, 3).map((advice, index) => (
+                  <div key={index} className="so-report-history-item" style={{ marginBottom: 12 }}>
+                    <div className="so-report-history-icon"><i className="bi bi-chat-left-text-fill"></i></div>
+                    <div className="so-report-history-info">
+                      <div className="so-report-history-title">{advice.subject || (lang === 'en' ? 'District Advisory' : 'Inama y\'Akarere')}</div>
+                      <div className="so-report-history-meta">
+                        <span><i className="bi bi-calendar3"></i> {fmtDate(advice.created_at)}</span>
+                        <span><i className="bi bi-person-badge"></i> {advice.recipient_name || advice.recipient_officer_id || (lang === 'en' ? 'Sector Officer' : 'Ofisiye wa Segiteri')}</span>
+                      </div>
+                      <div className="so-report-history-preview">{(advice.message || '').slice(0, 100)}…</div>
+                    </div>
+                    <button className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 10px', height: 'fit-content' }} onClick={() => handleRevokeAdvice(advice.advice_id || advice.id)}>
+                      {lang === 'en' ? 'Revoke' : 'Kuraho'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Right: Quick templates based on performance */}

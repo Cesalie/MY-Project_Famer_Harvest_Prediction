@@ -6,9 +6,9 @@ export default function DistrictAdminPanel({ user, lang }) {
   const [name, setName]       = useState('');
   const [email, setEmail]     = useState('');
   const [phone, setPhone]     = useState('');
-  const [role, setRole]       = useState('sector');
+  const role                   = 'sector';
   const [sector, setSector]   = useState(SECTORS[0]);
-  const [dept, setDept]       = useState('');
+  const dept                   = 'Crop Production';
   const [loading, setLoading] = useState(false);
   const [status, setStatus]   = useState(null);
   const [officers, setOfficers] = useState([]);
@@ -34,7 +34,8 @@ export default function DistrictAdminPanel({ user, lang }) {
 
   const fetchOfficers = async () => {
     try {
-      const res  = await fetch(`${API_BASE}/api/officers`);
+      const requester = user?.id || user?.officer_id || '';
+      const res  = await fetch(`${API_BASE}/api/officers?requester_id=${requester}`);
       const data = await res.json();
       if (data.success) setOfficers(data.officers);
     } catch {
@@ -49,7 +50,7 @@ export default function DistrictAdminPanel({ user, lang }) {
   };
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !dept.trim()) {
+    if (!name.trim() || !email.trim() || !sector.trim()) {
       return setStatus({ type: 'err', msg: t.allRequired || 'Please fill in all required fields.' });
     }
     if (!email.includes('@')) {
@@ -66,7 +67,7 @@ export default function DistrictAdminPanel({ user, lang }) {
       const data = await res.json();
       if (data.success) {
         setStatus({ type: 'ok', msg: t.officerRegistered || `Officer registered! Default password: harvest2024` });
-        setName(''); setEmail(''); setPhone(''); setDept('');
+        setName(''); setEmail(''); setPhone('');
         fetchOfficers();
       } else {
         setStatus({ type: 'err', msg: data.error || 'Registration failed.' });
@@ -78,7 +79,7 @@ export default function DistrictAdminPanel({ user, lang }) {
         { id: `O${Date.now()}`, name, email, role, sector, department: dept, status: 'active' },
       ]);
       setStatus({ type: 'ok', msg: `Officer queued (offline). Default password: harvest2024` });
-      setName(''); setEmail(''); setPhone(''); setDept('');
+      setName(''); setEmail(''); setPhone('');
     }
     setLoading(false);
     setTimeout(() => setStatus(null), 5000);
@@ -154,33 +155,19 @@ export default function DistrictAdminPanel({ user, lang }) {
               placeholder="+250 78..."
             />
           </div>
-          <div className="fgrp">
-            <label className="flabel">{t.deptLabel || 'Department'} *</label>
-            <input
-              className="finput"
-              value={dept}
-              onChange={e => setDept(e.target.value)}
-              placeholder="e.g. Agronomy, Irrigation"
-            />
-          </div>
         </div>
 
         <div className="frow">
           <div className="fgrp">
-            <label className="flabel">{t.officerRole || 'Officer Role'}</label>
-            <select className="finput" value={role} onChange={e => setRole(e.target.value)}>
-              <option value="sector">Sector Officer</option>
-              <option value="district">District Officer</option>
+            <label className="flabel">{t.assignedSector || 'Assigned Sector'}</label>
+            <select className="finput" value={sector} onChange={e => setSector(e.target.value)}>
+              {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          {role === 'sector' && (
-            <div className="fgrp">
-              <label className="flabel">{t.assignedSector || 'Assigned Sector'}</label>
-              <select className="finput" value={sector} onChange={e => setSector(e.target.value)}>
-                {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          )}
+          <div className="fgrp">
+            <label className="flabel">{t.deptLabel || 'Department'}</label>
+            <input className="finput" type="text" value={dept} disabled />
+          </div>
         </div>
 
         <div
@@ -195,7 +182,7 @@ export default function DistrictAdminPanel({ user, lang }) {
           }}
         >
           <i className="bi bi-info-circle"></i>{' '}
-          A default password <strong>harvest2024</strong> will be assigned. The officer must change it on first login.
+          A default password <strong>harvest2024</strong> will be assigned and the login credentials will be sent to the officer's email. The officer should change the password on first login.
         </div>
 
         <button className="btn btn-primary" onClick={handleRegister} disabled={loading} style={{ marginTop: 4 }}>

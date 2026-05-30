@@ -15,10 +15,44 @@ export default function SectorReports({ user, dashData, lang }) {
   const [sendingAdvice, setSendingAdvice] = useState(false);
   const [sentReports, setSentReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(false);
+  const [sentAdvice, setSentAdvice] = useState([]);
+  const [loadingAdviceHistory, setLoadingAdviceHistory] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'history') fetchReports();
+    if (activeTab === 'history') {
+      fetchReports();
+      fetchSentAdvice();
+    }
   }, [activeTab]);
+
+  const fetchSentAdvice = () => {
+    setLoadingAdviceHistory(true);
+    fetch(`${API_BASE}/api/sent-advice?officer_id=${user.id || user.officer_id}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setSentAdvice(d.advice || []);
+        setLoadingAdviceHistory(false);
+      })
+      .catch(() => setLoadingAdviceHistory(false));
+  };
+
+  const handleRevokeAdvice = async (adviceId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/revoke-advice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ officer_id: user.id || user.officer_id, advice_id: adviceId })
+      });
+      const d = await res.json();
+      if (d.success) {
+        setSentAdvice((prev) => prev.filter((item) => item.advice_id !== adviceId && item.advice_id !== adviceId));
+      } else {
+        setAdviceStatus({ type: 'err', msg: d.error || (lang === 'en' ? 'Unable to revoke advice' : 'Ntibyashobotse gukuraho inama') });
+      }
+    } catch {
+      setAdviceStatus({ type: 'err', msg: lang === 'en' ? 'Unable to revoke advice' : 'Ntibyashobotse gukuraho inama' });
+    }
+  };
 
   const fetchReports = () => {
     setLoadingReports(true);
@@ -410,6 +444,40 @@ export default function SectorReports({ user, dashData, lang }) {
                   </div>
                 </div>
               ))}
+              <div style={{ marginTop: 30 }}>
+                <h3 style={{ marginBottom: 16 }}>{lang === 'en' ? 'Sent Advice History' : 'Amateka y\'Inama Zohererejwe'}</h3>
+                {loadingAdviceHistory ? (
+                  <div className="so-loading-list">
+                    {[1,2,3].map(i => <div key={i} className="so-skeleton-row" style={{ height: 60 }} />)}
+                  </div>
+                ) : sentAdvice.length === 0 ? (
+                  <div className="so-empty-state">
+                    <i className="bi bi-chat-dots"></i>
+                    <p>{lang === 'en' ? 'No advice sent yet' : 'Nta nama yoherejwe'}</p>
+                  </div>
+                ) : (
+                  sentAdvice.map((advice, i) => (
+                    <div key={i} className="so-report-history-item">
+                      <div className="so-report-history-icon">
+                        <i className="bi bi-chat-left-text-fill"></i>
+                      </div>
+                      <div className="so-report-history-info">
+                        <div className="so-report-history-title">{advice.subject || (lang === 'en' ? 'Agricultural Advisory' : 'Inama ku Buhinzi')}</div>
+                        <div className="so-report-history-meta">
+                          <span><i className="bi bi-calendar3"></i> {fmtDate(advice.created_at)}</span>
+                          <span><i className="bi bi-person-badge"></i> {advice.recipient_name || advice.recipient_officer_id || (lang === 'en' ? 'Sector Officer' : 'Ofisiye wa Segiteri')}</span>
+                        </div>
+                        <div className="so-report-history-preview">{(advice.message || '').slice(0, 120)}…</div>
+                      </div>
+                      <div className="so-report-history-status" style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                        <button className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 10px' }} onClick={() => handleRevokeAdvice(advice.advice_id || advice.id)}>
+                          {lang === 'en' ? 'Revoke' : 'Kuraho'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>

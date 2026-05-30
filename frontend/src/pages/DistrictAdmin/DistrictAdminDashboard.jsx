@@ -42,9 +42,10 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
 
   const fetchOfficers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/officers`);
+      const requester = user?.id || user?.officer_id || '';
+      const res = await fetch(`${API_BASE}/api/officers?role=sector&requester_id=${requester}`);
       const data = await res.json();
-      if (data.success) setOfficers(data.officers.filter(o => o.role === 'sector'));
+      if (data.success) setOfficers(data.officers);
     } catch {
       setOfficers([
         { id: 'S001', name: 'Marie Mukaso',   sector: 'Nyamata', email: 'marie@sector.gov.rw' },

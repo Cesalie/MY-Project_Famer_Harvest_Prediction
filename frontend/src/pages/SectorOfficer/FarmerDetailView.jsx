@@ -5,6 +5,11 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
   const t = T[lang];
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [preds, setPreds] = useState([]);
+  const [predsPage, setPredsPage] = useState(1);
+  const [predsPerPage] = useState(10);
+  const [loadingPreds, setLoadingPreds] = useState(false);
+  const [predsHasMore, setPredsHasMore] = useState(false);
   const [activeTab, setActiveTab] = useState(autoAdvice ? 'advice' : 'profile');
   const [showAdviceForm, setShowAdviceForm] = useState(false);
   const [adviceSubject, setAdviceSubject] = useState('');
@@ -19,7 +24,24 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
+    // load first page of predictions separately (paginated)
+    fetchPredictions(1);
   }, [farmerId]);
+
+  const fetchPredictions = (page = 1) => {
+    setLoadingPreds(true);
+    fetch(`${API_BASE}/api/predictions?farmer_id=${farmerId}&page=${page}&per_page=${predsPerPage}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d && Array.isArray(d.predictions)) {
+          setPreds(prev => page === 1 ? d.predictions : [...prev, ...d.predictions]);
+          setPredsPage(page);
+          setPredsHasMore(!!d.has_more);
+        }
+        setLoadingPreds(false);
+      })
+      .catch(() => setLoadingPreds(false));
+  };
 
   if (loading) return (
     <div className="so-detail-loading">
@@ -37,12 +59,13 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
 
   const f = data.farmer || {};
   const stats = data.stats || {};
-  const preds = data.recent_predictions || [];
+  const predsFromData = data?.recent_predictions || [];
+  const displayedPreds = preds.length ? preds : predsFromData;
   const name = f.full_name || f.name || 'Unknown';
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  const avgYield = preds.length
-    ? (preds.reduce((s, p) => s + parseFloat(p.yield_per_are_kg || 0), 0) / preds.length).toFixed(1)
+  const avgYield = displayedPreds.length
+    ? (displayedPreds.reduce((s, p) => s + parseFloat(p.yield_per_are_kg || 0), 0) / displayedPreds.length).toFixed(1)
     : '—';
 
   const gradeColor = (g) => ({ Excellent: '#16a34a', Good: '#0284c7', Average: '#d97706', 'Below Average': '#dc2626' }[g] || '#64748b');
@@ -176,7 +199,12 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
 
       {activeTab === 'predictions' && (
         <div className="so-detail-section fade-up">
-          {preds.length === 0 ? (
+          {loadingPreds ? (
+            <div className="so-detail-loading">
+              <div className="so-spinner"></div>
+              <p>{lang === 'en' ? 'Loading predictions…' : 'Gufungura ibisobanuro…'}</p>
+            </div>
+          ) : (preds.length === 0 && predsFromData.length === 0) ? (
             <div className="so-empty-state">
               <i className="bi bi-clipboard2-x"></i>
               <p>{lang === 'en' ? 'No predictions recorded yet' : 'Nta bisobanuro byanditswe'}</p>
@@ -185,9 +213,9 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
             <>
               <div className="so-pred-summary-row">
                 {[
-                  { lbl: lang === 'en' ? 'Total Predictions' : 'Ibisobanuro Byose', val: preds.length },
+                  { lbl: lang === 'en' ? 'Total Predictions' : 'Ibisobanuro Byose', val: displayedPreds.length },
                   { lbl: lang === 'en' ? 'Avg Yield' : 'Umusaruro Hagati', val: `${avgYield} kg/are` },
-                  { lbl: lang === 'en' ? 'Best Yield' : 'Umusaruro Mwiza', val: `${Math.max(...preds.map(p => parseFloat(p.yield_per_are_kg || 0))).toFixed(1)} kg/are` },
+                  { lbl: lang === 'en' ? 'Best Yield' : 'Umusaruro Mwiza', val: `${displayedPreds.length ? Math.max(...displayedPreds.map(p => parseFloat(p.yield_per_are_kg || 0))).toFixed(1) : '—'} kg/are` },
                 ].map((s, i) => (
                   <div key={i} className="so-pred-summary-item">
                     <div className="so-pred-summary-val">{s.val}</div>
@@ -209,7 +237,7 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
                     </tr>
                   </thead>
                   <tbody>
-                    {preds.map((p, i) => (
+                    {displayedPreds.map((p, i) => (
                       <tr key={i} className="so-pred-tr" onClick={() => setSelectedPred && setSelectedPred(p)}>
                         <td>
                           <span className="so-crop-tag" style={{
@@ -236,6 +264,13 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
                   </tbody>
                 </table>
               </div>
+                {predsHasMore && (
+                  <div style={{ textAlign: 'center', marginTop: 12 }}>
+                    <button className="btn btn-small" onClick={() => fetchPredictions(predsPage + 1)} disabled={loadingPreds}>
+                      {loadingPreds ? 'Loading…' : (lang === 'en' ? 'Load more' : 'Kwerekana ibindi')}
+                    </button>
+                  </div>
+                )}
             </>
           )}
         </div>

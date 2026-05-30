@@ -17,7 +17,7 @@ try:
         reset_password as db_reset_password, approve_prediction, get_sector_dashboard,
         save_prediction, get_predictions, get_district_stats,
         get_officer_dashboard, get_farmer_stats, get_all_sectors,
-        get_sector, save_advice, get_farmer_advice,
+        get_sector, save_advice, get_farmer_advice, get_sent_advice, revoke_advice,
         update_user, verify_password, save_report, get_reports_for_officer,
         get_all_users, toggle_user_status, get_system_settings, update_system_settings,
         get_sector_full_details
@@ -41,41 +41,206 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
+import time
+import threading
 
-# ── Email configuration ───────────────────────────────────────────────────────
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-SMTP_USER = "tuyisengeelysee1@gmail.com"
-SMTP_PASS = "vobk yjcw ajsa jrpw"
-CONTACT_TO_EMAIL = "tuyisengeelysee1@gmail.com"
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+# ── Weather service ───────────────────────────────────────────────────────────
+try:
+    from weather_service import get_weather_for_prediction, SECTOR_COORDS
+    WEATHER_ENABLED = True
+    print("  [check-circle] weather_service.py loaded — Open-Meteo integration active")
+except ImportError:
+    WEATHER_ENABLED = False
+    print("  [exclamation-triangle] weather_service.py not found — using historical averages")
+
+# ── Email configuration (use environment variables in production) ─────────────
+BASE_DIR = pathlib.Path(__file__).resolve().parent
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+SMTP_USER = os.getenv('SMTP_USER', 'uwimpuhweeliphaz@gmail.com')
+SMTP_PASS = os.getenv('SMTP_PASS', 'thub hrof rzlf ckrw')
+CONTACT_TO_EMAIL = os.getenv('CONTACT_TO_EMAIL', SMTP_USER)
+GMAIL_API_FALLBACK = False  # Use SMTP directly
+GMAIL_CREDENTIALS_FILE = os.getenv('GMAIL_CREDENTIALS_FILE', 'credentials.json')
+GMAIL_TOKEN_FILE = os.getenv('GMAIL_TOKEN_FILE', 'token.json')
+
+def resolve_path(path: str) -> str:
+    if os.path.isabs(path):
+        return path
+    cwd_candidate = os.path.abspath(path)
+    if os.path.dirname(path) or os.path.exists(cwd_candidate):
+        return cwd_candidate
+    return str(BASE_DIR / path)
+
+GMAIL_CREDENTIALS_FILE = resolve_path(GMAIL_CREDENTIALS_FILE)
+GMAIL_TOKEN_FILE = resolve_path(GMAIL_TOKEN_FILE)
+GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+print(f"  [info] SMTP_USER={'set' if SMTP_USER else 'unset'}, SMTP_PASS={'set' if SMTP_PASS else 'unset'}, GMAIL_API_FALLBACK={GMAIL_API_FALLBACK}")
+print(f"  [info] Gmail credentials path={GMAIL_CREDENTIALS_FILE}, token path={GMAIL_TOKEN_FILE}")
+
+def normalize_rwanda_phone(value: str) -> str:
+    digits = re.sub(r'\D', '', value or '')
+    if digits.startswith('250') and len(digits) == 12:
+        return f'0{digits[3:]}'
+    return digits
+
+def is_valid_rwanda_phone(value: str) -> bool:
+    phone = normalize_rwanda_phone(value)
+    allowed_prefixes = {'072', '073', '074', '075', '078', '079'}
+    return len(phone) == 10 and phone.startswith('07') and phone[:3] in allowed_prefixes
+
+def is_valid_email(value: str) -> bool:
+    email = (value or '').strip().lower()
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(email_regex, email))
+
+def is_valid_gmail_address(value: str) -> bool:
+    email = (value or '').strip().lower()
+    if not is_valid_email(email):
+        return False
+    return email.endswith('@gmail.com')
 
 def send_email(to_email, subject, body_html, body_text=None):
-    """Sends an email using SMTP with the provided configuration."""
+    """Sends an email using SMTP with retry.
+
+    Returns (sent: bool, error_message: str|None).
+    """
+    attempts = int(os.getenv('EMAIL_SEND_ATTEMPTS', 3))
+    base_delay = float(os.getenv('EMAIL_RETRY_DELAY', 2.0))
+    last_err = None
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = formataddr(("Bugesera Harvest System", SMTP_USER))
+    msg['To'] = to_email
+
+    if not body_text:
+        body_text = "Please enable HTML to view this email."
+
+    part1 = MIMEText(body_text, 'plain')
+    part2 = MIMEText(body_html, 'html')
+    msg.attach(part1)
+    msg.attach(part2)
+
+    if not SMTP_USER or not SMTP_PASS:
+        if GMAIL_API_FALLBACK:
+            print("  [arrow-repeat] SMTP credentials missing, using Gmail API fallback")
+            sent, api_err = send_email_via_gmail_api(to_email, subject, body_html, body_text)
+            if sent:
+                return True, None
+            return False, api_err
+        return False, 'SMTP credentials are missing and Gmail API fallback is disabled.'
+
+    for attempt in range(1, attempts + 1):
+        try:
+            with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=30) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(SMTP_USER, SMTP_PASS)
+                server.sendmail(SMTP_USER, to_email, msg.as_string())
+
+            print(f"  [check-circle] Email successfully sent to {to_email} (attempt {attempt})")
+            return True, None
+        except Exception as e:
+            last_err = str(e)
+            print(f"  [x-circle] Failed to send email to {to_email} on attempt {attempt}: {e}")
+            if attempt < attempts:
+                sleep_time = base_delay * attempt
+                print(f"    Retrying in {sleep_time}s...")
+                time.sleep(sleep_time)
+
+    if GMAIL_API_FALLBACK:
+        print(f"  [arrow-repeat] SMTP failed, attempting Gmail API fallback for {to_email}")
+        sent, api_err = send_email_via_gmail_api(to_email, subject, body_html, body_text)
+        if sent:
+            return True, None
+        print(f"  [x-circle] Gmail API fallback failed: {api_err}")
+        return False, f"SMTP failed: {last_err}; Gmail API fallback failed: {api_err}"
+
+    return False, last_err
+
+
+def send_email_async(to_email, subject, body_html, body_text=None):
+    """Send email in a background thread to avoid blocking the response.
+    
+    Returns (sent: bool, error_message: str|None) immediately, 
+    but email is sent asynchronously.
+    """
+    def _send_in_background():
+        try:
+            success, error = send_email(to_email, subject, body_html, body_text)
+            if not success:
+                print(f"  [!] Background email send failed for {to_email}: {error}")
+            else:
+                print(f"  [✓] Background email sent to {to_email}")
+        except Exception as e:
+            print(f"  [!] Exception in background email send: {e}")
+    
+    # Start email sending in background thread
+    thread = threading.Thread(target=_send_in_background, daemon=True)
+    thread.start()
+    
+    # Return immediately to avoid blocking the HTTP response
+    return True, None
+
+
+def get_gmail_service():
+    creds = None
+    if os.path.exists(GMAIL_TOKEN_FILE):
+        creds = Credentials.from_authorized_user_file(GMAIL_TOKEN_FILE, GMAIL_SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            if not os.path.exists(GMAIL_CREDENTIALS_FILE):
+                return None, f"Gmail credentials file not found at {GMAIL_CREDENTIALS_FILE}"
+            flow = InstalledAppFlow.from_client_secrets_file(GMAIL_CREDENTIALS_FILE, GMAIL_SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open(GMAIL_TOKEN_FILE, 'w') as token:
+            token.write(creds.to_json())
+    service = build('gmail', 'v1', credentials=creds)
+    return service, None
+
+
+def send_email_via_gmail_api(to_email, subject, body_html, body_text=None):
+    service, err = get_gmail_service()
+    if not service:
+        return False, err
+
+    from_email = SMTP_USER or CONTACT_TO_EMAIL or 'no-reply@example.com'
+    msg = MIMEMultipart('alternative')
+    msg['subject'] = subject
+    msg['to'] = to_email
+    msg['from'] = from_email
+
+    if not body_text:
+        body_text = "Please enable HTML to view this email."
+    part1 = MIMEText(body_text, 'plain')
+    part2 = MIMEText(body_html, 'html')
+    msg.attach(part1)
+    msg.attach(part2)
+
+    raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
     try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = formataddr(("Bugesera Harvest System", SMTP_USER))
-        msg['To'] = to_email
-
-        if not body_text:
-            body_text = "Please enable HTML to view this email."
-        
-        part1 = MIMEText(body_text, 'plain')
-        part2 = MIMEText(body_html, 'html')
-
-        msg.attach(part1)
-        msg.attach(part2)
-
-        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.sendmail(SMTP_USER, to_email, msg.as_string())
-        
-        print(f"  [check-circle] Email successfully sent to {to_email}")
-        return True
+        send_request = service.users().messages().send(
+            userId='me',
+            body={'raw': raw_message}
+        ).execute()
+        print(f"  [check-circle] Gmail API email successfully sent to {to_email}, message ID: {send_request.get('id')}")
+        return True, None
+    except HttpError as he:
+        return False, f"Gmail API error: {he}"
     except Exception as e:
-        print(f"  [x-circle] Failed to send email to {to_email}: {e}")
-        return False
+        return False, str(e)
+
 
 def get_registration_html(name, email, password, role):
     role_name = "Farmer" if role == 'farmer' else "Agricultural Officer"
@@ -156,11 +321,16 @@ try:
     model   = joblib.load(os.path.join(BASE, 'best_model.pkl'))
     scaler  = joblib.load(os.path.join(BASE, 'scaler.pkl'))
     le_dict = joblib.load(os.path.join(BASE, 'label_encoders.pkl'))
+    # Load imputer if available (new training)
+    imputer_path = os.path.join(BASE, 'imputer.pkl')
+    imputer = joblib.load(imputer_path) if os.path.exists(imputer_path) else None
     print("  [check-circle] best_model.pkl")
     print("  [check-circle] scaler.pkl")
     print("  [check-circle] label_encoders.pkl")
+    if imputer:
+        print("  [check-circle] imputer.pkl")
 except FileNotFoundError as e:
-    raise SystemExit(f"[x-circle] Missing artifact: {e}\n   Run Harvest_Prediction_ML.ipynb first.")
+    raise SystemExit(f"[x-circle] Missing artifact: {e}\n   Run train_models.py first.")
 
 # ── Load metadata ──────────────────────────────────────────────────────────────
 META_PATH = os.path.join(BASE, 'model_metadata.json')
@@ -185,6 +355,8 @@ ARE_TO_HA = 0.01    # 1 are = 0.01 ha
 CROP_BENCHMARKS = META.get('crop_benchmarks_kg_are', {
     'Beans': 11.91, 'Maize': 23.22, 'Rice': 36.36,
 })
+
+DEFAULT_MODEL_CONFIDENCE = round(META['_perf'].get(META['best_model'], {}).get('r2', 0) * 100, 1)
 
 # Soil type → Soil_Health mapping
 SOIL_HEALTH_MAP = {
@@ -274,96 +446,209 @@ def _enc(key: str, value: str, fallback: int = 0) -> int:
 
 def build_features(d: dict) -> pd.DataFrame:
     """
-    Build model feature vector from request data.
-    All sizes in ARE, yield target is kg/are.
+    Build model feature vector — v6.0
+    Matches exactly the 35 features from Bugesera_Harvest_Dataset_v2.csv
     """
-    crop       = d['crop']
-    sector     = d['sector']
-    season     = d['season']
-    month      = d.get('month', 'October')
-    farm_are   = float(d['farm_size'])          # frontend sends ARE
-    area_are   = float(d.get('area_planted', farm_are * 0.9))
-    farmer_cat = d.get('farmer_category', 'Medium')
-    fertilizer = d.get('fertilizer_used', False)
-    irrigation = d.get('irrigation_used', False)
-    soil_type  = d.get('soil_type', 'Clay')
+    crop     = d['crop']
+    sector   = d['sector']
+    season   = d['season']
+    month    = d.get('month', 'October')
+    farm_are = float(d['farm_size'])
+    area_are = float(d.get('area_planted', farm_are * 0.9))
 
-    # Map boolean/string fertilizer values
-    if isinstance(fertilizer, bool):
-        fert_str = 'Yes' if fertilizer else 'No'
-    else:
-        fert_str = str(fertilizer)
-    if isinstance(irrigation, bool):
-        irr_str = 'Yes' if irrigation else 'No'
-    else:
-        irr_str = str(irrigation)
+    fertilizer   = d.get('fertilizer_used', 'No')
+    irrigation   = d.get('irrigation_used', 'No')
+    fert_str     = 'Yes' if (fertilizer is True or str(fertilizer).lower() in ('yes','true','1')) else \
+                   'Partial' if str(fertilizer).lower() == 'partial' else 'No'
+    irr_str      = 'Yes' if (irrigation is True or str(irrigation).lower() in ('yes','true','1')) else \
+                   'Partial' if str(irrigation).lower() == 'partial' else 'No'
+    fert_bin     = 1 if fert_str == 'Yes' else 0
+    irr_bin      = 1 if irr_str  == 'Yes' else 0
 
     # Auto climate
-    clim = get_climate(month, season)
-    temperature    = float(d.get('temperature',        clim['temperature']))
-    rainfall       = float(d.get('rainfall',           clim['rainfall']))
-    humidity       = float(d.get('humidity',           clim['humidity']))
-    sunshine       = float(d.get('sunshine',           clim['sunshine']))
-    wind_speed     = float(d.get('wind_speed',         clim['wind_speed']))
-    evapotrans     = float(d.get('evapotranspiration', clim['evapotranspiration']))
+    clim        = get_climate(month, season)
+    temperature = float(d.get('temperature',        clim['temperature']))
+    rainfall    = float(d.get('rainfall',           clim['rainfall']))
+    humidity    = float(d.get('humidity',           clim['humidity']))
+    sunshine    = float(d.get('sunshine',           clim['sunshine']))
+    wind_speed  = float(d.get('wind_speed',         clim['wind_speed']))
+    evapotrans  = float(d.get('evapotranspiration', clim['evapotranspiration']))
 
-    # Soil data from sector
+    # Soil from sector
     soil_data = SECTOR_SOIL.get(sector, SECTOR_SOIL['Gashora'])
+    soil_ph   = soil_data['pH_Level']
 
-    # Derive weather impact from rainfall
-    if rainfall < 300:
-        weather = 'Unfavorable'
-    elif rainfall > 600:
-        weather = 'Favorable'
-    else:
-        weather = 'Moderate'
+    # ── All encodings matching LabelEncoder order from training ───────────────
+    SECTORS_LIST = ['Gashora','Juru','Kamabuye','Mareba','Mayange','Musenyi',
+                    'Mwogo','Ngeruka','Ntarama','Nyamata','Nyarugenge','Rilima',
+                    'Ruhuha','Rweru','Shyara']
+    sector_enc = SECTORS_LIST.index(sector) if sector in SECTORS_LIST else 0
 
-    # Engineered features
-    fert_score     = 1.0 if fert_str == 'Yes' else (0.5 if fert_str == 'Partial' else 0.0)
-    irr_score      = 1.0 if irr_str  == 'Yes' else (0.5 if irr_str  == 'Partial' else 0.0)
-    ph_optimality  = 1 - abs(soil_data['pH_Level'] - 6.5) / 2.0
-    crop_rain      = {'Maize': 500, 'Beans': 400, 'Rice': 650}.get(crop, 500)
-    rain_adequacy  = min(rainfall / crop_rain, 1.5)
-    is_season_a    = 1 if season == 'Season A' else 0
+    # Crop: Beans=0, Maize=1, Rice=2 (alphabetical LabelEncoder)
+    crop_enc = {'Beans':0,'Maize':1,'Rice':2}.get(crop, 1)
+
+    # Terrain: Flat=0, Hillside=1, Valley=2
+    terrain     = d.get('terrain', 'Flat')
+    terrain_enc = {'Flat':0,'Hillside':1,'Valley':2}.get(terrain, 0)
+
+    # Seed variety (alphabetical)
+    seed        = d.get('seed_variety', 'Improved (WH507)')
+    # Map frontend values to dataset values
+    SEED_MAP = {
+        'Hybrid':   {'Maize':'Hybrid (H614D)',   'Beans':'Hybrid (MAC 44)',    'Rice':'Hybrid (Komboka)'},
+        'Improved': {'Maize':'Improved (WH507)', 'Beans':'Improved (RWR 2245)','Rice':'Improved (IR64 / NERICA)'},
+        'Local':    {'Maize':'Local Variety',    'Beans':'Local Variety',       'Rice':'Local Variety'},
+    }
+    seed_full = SEED_MAP.get(seed, {}).get(crop, seed)
+    # Encode: alphabetical order of all seed values
+    ALL_SEEDS = sorted(['Hybrid (H614D)','Hybrid (Komboka)','Hybrid (MAC 44)',
+                        'Improved (IR64 / NERICA)','Improved (RWR 2245)','Improved (WH507)',
+                        'Local Variety'])
+    seed_enc = ALL_SEEDS.index(seed_full) if seed_full in ALL_SEEDS else 5  # default Improved WH507
+
+    # Fertilizer Used: No=0, Partial=1, Yes=2
+    fert_used_enc = {'No':0,'Partial':1,'Yes':2}.get(fert_str, 0)
+
+    # Fertilizer Type (alphabetical)
+    fert_type_raw = d.get('fertilizer_type', 'None')
+    FERT_TYPE_MAP = {
+        'DAP':     'Inorganic (NPK)',
+        'NPK':     'Inorganic (NPK)',
+        'Urea':    'Inorganic (NPK)',
+        'Organic': 'Organic (Compost)',
+        'Mixed':   'Mixed (Organic + Inorganic)',
+        'None':    'None',
+    }
+    fert_type_full = FERT_TYPE_MAP.get(fert_type_raw, fert_type_raw)
+    ALL_FERT = sorted(['Inorganic (NPK)','Mixed (Organic + Inorganic)','None','Organic (Compost)'])
+    fert_type_enc = ALL_FERT.index(fert_type_full) if fert_type_full in ALL_FERT else 2  # None
+
+    # Fertilizer amount kg/are
+    fert_kg_are_input = float(d.get('fertilizer_amount_kg_are', 0) or 0)
+    fert_kg_are = fert_kg_are_input if (fert_bin and fert_kg_are_input > 0) else (1.5 if fert_bin else 0.0)
+
+    # Irrigation Used: No=0, Partial=1, Yes=2
+    irr_used_enc = {'No':0,'Partial':1,'Yes':2}.get(irr_str, 0)
+
+    # Previous Crop (alphabetical)
+    prev_crop = d.get('previous_crop', 'Beans')
+    ALL_PREV  = sorted(['Beans','Cassava','Fallow','Maize','Rice'])
+    prev_crop_enc = ALL_PREV.index(prev_crop) if prev_crop in ALL_PREV else 0
+
+    # Pest: High=0, Low=1, Medium=2
+    pest_str  = d.get('pest_pressure', 'Low')
+    pest_enc  = {'High':0,'Low':1,'Medium':2}.get(pest_str, 1)
+
+    # Labor: Adequate=0, Limited=1, Sufficient=2
+    labor_enc = {'Adequate':0,'Limited':1,'Sufficient':2}.get(d.get('labor_availability','Adequate'), 0)
+
+    # Extension: No=0, Yes=1
+    ext_enc    = 1 if d.get('extension_access','Yes') == 'Yes' else 0
+
+    # Credit: No=0, Yes=1
+    credit_enc = 1 if d.get('credit_access','No') == 'Yes' else 0
+
+    # Soil Type (alphabetical)
+    SECTOR_SOIL_TYPES = {
+        'Gashora':'Loam','Juru':'Sandy Loam','Kamabuye':'Clay Soil',
+        'Mareba':'Sandy Loam','Mayange':'Sandy Loam','Musenyi':'Loam',
+        'Mwogo':'Sandy Soil','Ngeruka':'Loam','Ntarama':'Sandy Soil',
+        'Nyamata':'Clay Soil','Nyarugenge':'Clay Soil','Rilima':'Sandy Soil',
+        'Ruhuha':'Sandy Loam','Rweru':'Clay Soil','Shyara':'Sandy Loam',
+    }
+    soil_type_str = SECTOR_SOIL_TYPES.get(sector, 'Clay Soil')
+    ALL_SOIL = sorted(['Clay Soil','Loam','Sandy Loam','Sandy Soil'])
+    soil_type_enc = ALL_SOIL.index(soil_type_str) if soil_type_str in ALL_SOIL else 0
+
+    # ── Engineered features ───────────────────────────────────────────────────
+    is_season_a   = 1 if season == 'Season A' else 0
+    crop_rain_opt = {'Maize':500,'Beans':400,'Rice':650}.get(crop, 500)
+    rain_adequacy = min(rainfall / crop_rain_opt, 2.0)
+    ph_optimality = max(0.0, 1.0 - abs(soil_ph - 6.5) / 2.0)
+    sunshine_score= min(1.0, sunshine / 9.5)
+    water_balance = rainfall - evapotrans
+    temp_opt      = {'Maize':23,'Beans':22,'Rice':25}.get(crop, 23)
+    temp_deviation= abs(temperature - temp_opt)
+
+    # ── Confidence adjustment ─────────────────────────────────────────────────
+    conf_adj = 0.0
+    if fert_bin:
+        conf_adj += 2.5
+        opt = {'Maize': 1.5, 'Beans': 0.8, 'Rice': 1.8}.get(crop, 1.5)
+        if fert_kg_are <= opt:
+            conf_adj += min(1.0, (fert_kg_are / opt) * 1.0)
+        else:
+            conf_adj += max(0.0, 1.0 - (fert_kg_are - opt) * 0.25)
+    if irr_bin:
+        conf_adj += 2.0
+    if pest_str == 'Low':
+        conf_adj += 2.0
+    elif pest_str == 'High':
+        conf_adj -= 5.0
+    if ext_enc == 1:
+        conf_adj += 1.0
+    if credit_enc == 1:
+        conf_adj += 0.8
+    if prev_crop in ('Beans','Legume'):
+        conf_adj += 1.2
+    if labor_enc == 0:
+        conf_adj += 0.5
+    elif labor_enc == 1:
+        conf_adj -= 1.5
+
+    # Climate and soil quality adjustments
+    if 0.9 <= rain_adequacy <= 1.2:
+        conf_adj += 1.0
+    elif rain_adequacy < 0.6:
+        conf_adj -= 2.0
+    if temp_deviation <= 2:
+        conf_adj += 0.8
+    elif temp_deviation > 5:
+        conf_adj -= 1.2
+    if 5.8 <= soil_ph <= 7.0:
+        conf_adj += 0.8
+    elif soil_ph < 5.2 or soil_ph > 7.3:
+        conf_adj -= 1.0
+
+    # Limit adjustment size so the confidence remains realistic
+    d['_conf_adj'] = max(-12.0, min(8.0, conf_adj))
 
     row = {
-        'Year'                          : int(d.get('year', 2024)),
-        'Season'                        : _enc('Season',              season),
-        'Crop_Type'                     : _enc('Crop_Type',           crop),
-        'Sector'                        : _enc('Sector',              sector),
-        'Farm_Size_Are'                 : farm_are,
-        'Area_Planted_Are'              : area_are,
-        'Farmer_Category'               : _enc('Farmer_Category',     farmer_cat),
-        'Fertilizer_Used'               : _enc('Fertilizer_Used',     fert_str),
-        'Fertilizer_Amount_Kg_per_Are'  : 1.865 if fert_str == 'Yes' else (0.9 if fert_str == 'Partial' else 0.0),
-        'Irrigation_Used'               : _enc('Irrigation_Used',     irr_str),
-        'Soil_Health'                   : _enc('Soil_Health',         SOIL_HEALTH_MAP.get(soil_type, 'Fair')),
-        'Previous_Crop'                 : _enc('Previous_Crop',       d.get('previous_crop','Beans')),
-        'Weather_Impact'                : _enc('Weather_Impact',      weather),
-        'Pest_Disease_Pressure'         : _enc('Pest_Disease_Pressure', d.get('pest_pressure','Low')),
-        'Labor_Availability'            : _enc('Labor_Availability',  d.get('labor_availability','Adequate')),
-        'Extension_Service_Access'      : _enc('Extension_Service_Access', d.get('extension_access','Yes')),
-        'Credit_Access'                 : _enc('Credit_Access',       d.get('credit_access','No')),
-        'Market_Distance_km'            : float(d.get('market_distance', 12.0)),
-        'Avg_Temperature_Celsius'       : temperature,
-        'Total_Rainfall_mm'             : rainfall,
-        'Relative_Humidity_Percent'     : humidity,
-        'Sunshine_Hours_per_Day'        : sunshine,
-        'Wind_Speed_kmh'                : wind_speed,
-        'Evapotranspiration_mm'         : evapotrans,
-        'pH_Level'                      : soil_data['pH_Level'],
-        'Organic_Matter_Percent'        : soil_data['Organic_Matter_Percent'],
-        'Nitrogen_ppm'                  : soil_data['Nitrogen_ppm'],
-        'Phosphorus_ppm'                : soil_data['Phosphorus_ppm'],
-        'Potassium_ppm'                 : soil_data['Potassium_ppm'],
-        'Avg_Pest_YieldLoss'            : float(d.get('pest_loss', 5.0)),
-        'Total_Cost_RWF_per_Are'        : float(d.get('cost_per_are', 4500.0)),
-        # Engineered
-        'Fertilizer_Score'              : fert_score,
-        'Irrigation_Score'              : irr_score,
-        'Soil_pH_Optimality'            : ph_optimality,
-        'Rain_Adequacy'                 : rain_adequacy,
-        'Is_Season_A'                   : is_season_a,
+        'Year'                        : int(d.get('year', 2024)),
+        'Is_Season_A'                 : is_season_a,
+        'Sector_enc'                  : sector_enc,
+        'Crop_Type_enc'               : crop_enc,
+        'Farm_Size_Ha'                : farm_are / 100.0,
+        'Area_Planted_Are'            : area_are,
+        'Terrain_Type_enc'            : terrain_enc,
+        'Seed_Variety_enc'            : seed_enc,
+        'Fertilizer_Used_enc'         : fert_used_enc,
+        'Fertilizer_Type_enc'         : fert_type_enc,
+        'Fert_Kg_Are'                 : fert_kg_are,
+        'Irrigation_Used_enc'         : irr_used_enc,
+        'Previous_Crop_enc'           : prev_crop_enc,
+        'Pest_Disease_Pressure_enc'   : pest_enc,
+        'Labor_Availability_enc'      : labor_enc,
+        'Extension_Service_Access_enc': ext_enc,
+        'Credit_Access_enc'           : credit_enc,
+        'Market_Distance_km'          : float(d.get('market_distance', 12.0)),
+        'Soil_Type_enc'               : soil_type_enc,
+        'Soil_pH'                     : soil_ph,
+        'Organic_Matter_Pct'          : soil_data['Organic_Matter_Percent'],
+        'Nitrogen_ppm'                : soil_data['Nitrogen_ppm'],
+        'Phosphorus_ppm'              : soil_data['Phosphorus_ppm'],
+        'Potassium_ppm'               : soil_data['Potassium_ppm'],
+        'Avg_Temperature_Celsius'     : temperature,
+        'Total_Rainfall_mm'           : rainfall,
+        'Relative_Humidity_Pct'       : humidity,
+        'Sunshine_Hours_per_Day'      : sunshine,
+        'Wind_Speed_kmh'              : wind_speed,
+        'Evapotranspiration_mm'       : evapotrans,
+        'Rain_Adequacy'               : rain_adequacy,
+        'pH_Optimality'               : ph_optimality,
+        'Sunshine_Score'              : sunshine_score,
+        'Water_Balance'               : water_balance,
+        'Temp_Deviation'              : temp_deviation,
     }
 
     X = pd.DataFrame([row]).reindex(columns=FEATURES, fill_value=0)
@@ -589,6 +874,9 @@ def forgot_password_request():
     if not email:
         return jsonify({'error': 'Email is required.'}), 400
 
+    if not is_valid_gmail_address(email):
+        return jsonify({'error': 'Email must be a valid Gmail address ending in @gmail.com.'}), 400
+
     user = None
     if DB_ENABLED:
         try:
@@ -613,10 +901,11 @@ def forgot_password_request():
     }
 
     html_content = get_otp_html(user.get('full_name') or user.get('name', 'User'), otp, "password reset")
-    if send_email(email, "Your Password Reset OTP", html_content):
+    sent, err = send_email(email, "Your Password Reset OTP", html_content)
+    if sent:
         return jsonify({'success': True, 'message': 'OTP sent to your email.'})
     else:
-        return jsonify({'error': 'Failed to send OTP. Please try again later.'}), 500
+        return jsonify({'error': 'Failed to send OTP. Please try again later.', 'email_error': err}), 500
 
 @app.route('/api/forgot-password/verify', methods=['POST'])
 def forgot_password_verify():
@@ -705,10 +994,11 @@ def change_password_request_otp():
     }
 
     html_content = get_otp_html(user.get('full_name') or user.get('name', 'User'), otp, "password change")
-    if send_email(email, "Your Password Change OTP", html_content):
+    sent, err = send_email(email, "Your Password Change OTP", html_content)
+    if sent:
         return jsonify({'success': True, 'message': 'OTP sent to your email.'})
     else:
-        return jsonify({'error': 'Failed to send OTP. Please try again later.'}), 500
+        return jsonify({'error': 'Failed to send OTP. Please try again later.', 'email_error': err}), 500
 
 @app.route('/api/change-password/verify', methods=['POST'])
 def change_password_verify():
@@ -766,6 +1056,20 @@ def change_password_verify():
         return jsonify({'success': True, 'message': 'Password updated successfully.'})
 
     return jsonify({'error': 'Failed to update password. User not found or database update failed.'}), 400
+
+@app.route('/api/weather', methods=['GET'])
+def get_weather():
+    """Get real-time weather for a sector from Open-Meteo."""
+    sector = request.args.get('sector', 'Nyamata')
+    planting_date = request.args.get('date')
+    if WEATHER_ENABLED:
+        try:
+            weather = get_weather_for_prediction(sector, planting_date)
+            return jsonify({'success': True, 'weather': weather, 'sector': sector})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': False, 'error': 'Weather service not available'}), 503
+
 
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -902,28 +1206,37 @@ def register():
     global _next_farmer
     d    = request.get_json() or {}
     role = d.get('role', 'farmer')
+    print(f"[REGISTER] incoming request: role={role}, email={d.get('email')}, phone={d.get('phone')}")
 
-    required = ['name','email']
+    required = ['name','email','phone']
+    # Department is fixed for sector officers; only sector name required for sector role
     if role != 'farmer':
-        required.append('department')
         if role == 'sector':
             required.append('sector')
+        else:
+            required.append('department')
 
     for field in required:
         if not d.get(field):
             return jsonify({'error': f'Missing field: {field}'}), 400
 
-    # Strict Email Validation
+    email_sent = False
+    email_error = None
+
+    phone_val = normalize_rwanda_phone(d.get('phone', ''))
+    if not is_valid_rwanda_phone(d.get('phone', '')):
+        return jsonify({'error': 'Phone number must be a valid Rwandan MTN/Tigo number with 10 digits.'}), 400
+    d['phone'] = phone_val
+
+    # Email Validation
     email_val = d.get('email', '').strip().lower()
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    if not re.match(email_regex, email_val):
-        return jsonify({'error': 'Invalid email format. Please use a real email address (e.g., user@example.com).'}), 400
-    
-    if any(c.isupper() for c in d.get('email', '')):
-        return jsonify({'error': 'Email cannot contain capital letters. Please use small letters and numbers only.'}), 400
-    
-    if role == 'farmer' and not email_val.endswith('@gmail.com'):
-        return jsonify({'error': 'Farmer registration requires a valid Gmail account (@gmail.com).'}), 400
+    if role == 'farmer':
+        if not is_valid_gmail_address(email_val):
+            return jsonify({'error': 'Invalid email. Please use a valid Gmail address ending in @gmail.com.'}), 400
+    else:
+        if not is_valid_email(email_val):
+            return jsonify({'error': 'Invalid email format. Please use a valid email address.'}), 400
+    d['email'] = email_val
 
     if DB_ENABLED:
         try:
@@ -953,9 +1266,9 @@ def register():
                     generated_pw = user.get('generated_password', 'harvest2024')
                     welcome_subject = "Welcome to Bugesera Harvest Predictor!" if d.get('lang') != 'rw' else "Murakaza neza muri Sisitemu y'Imyaka!"
                     
-                    # 3. Send Beautiful Email
+                    # 3. Send Beautiful Email asynchronously
                     html_content = get_registration_html(user['full_name'], user['email'], generated_pw, 'farmer')
-                    send_email(user['email'], welcome_subject, html_content)
+                    email_sent, email_error = send_email_async(user['email'], welcome_subject, html_content)
                     
                     # Save notification to DB for in-app viewing
                     welcome_msg = f"Hello {user['full_name']}, your account has been created. ID: {user['farmer_id']}, PW: {generated_pw}"
@@ -967,19 +1280,33 @@ def register():
                     })
                     
                 except Exception as fe:
+                    email_sent = False
+                    email_error = str(fe)
                     print(f"Initial farm/notification creation failed: {fe}")
             else:
+                # Force department to 'Crop Production' for sector officers
+                if role == 'sector':
+                    d['department'] = 'Crop Production'
                 user = register_officer(d)
                 # 4. Send Beautiful Email for Officers
                 try:
                     gen_pw = user.get('generated_password', 'harvest2024')
                     officer_subject = "Your Agriculture Officer Account" if d.get('lang') != 'rw' else "Konti yawe ya Ofisiye w'Ubuhinzi"
                     html_content = get_registration_html(user.get('full_name') or user.get('name'), user['email'], gen_pw, user['role'])
-                    send_email(user['email'], officer_subject, html_content)
+                    email_sent, email_error = send_email_async(user['email'], officer_subject, html_content)
                 except Exception as oe:
+                    email_sent = False
+                    email_error = str(oe)
                     print(f"Officer email send failed: {oe}")
-                
-            return jsonify({'success': True, 'user': user, 'generated_password': user.get('generated_password')}), 201
+
+            if not email_sent:
+                return jsonify({
+                    'success': False,
+                    'error': 'Account created, but email delivery failed. Please contact support or try again later.',
+                    'email_error': email_error
+                }), 500
+
+            return jsonify({'success': True, 'user': user, 'generated_password': user.get('generated_password'), 'email_sent': email_sent}), 201
         except Exception as e:
             print(f"DB registration error: {e}")
             return jsonify({'error': f'Database error: {str(e)}. Please check if MySQL is running.'}), 500
@@ -990,18 +1317,56 @@ def register():
 def list_officers():
     if not DB_ENABLED:
         return jsonify({'success': True, 'officers': []})
+    role_filter = request.args.get('role')
+    requester_id = request.args.get('requester_id')
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                cur.execute("""
-                    SELECT o.officer_id as id, o.full_name as name, o.email, o.department, o.officer_type as role, s.sector_name as sector
+                query = """
+                    SELECT o.officer_id as id, o.full_name as name, o.email, o.department, o.officer_type as role, s.sector_name as sector, o.sector_id
                     FROM officers o
                     LEFT JOIN sectors s ON o.sector_id = s.sector_id
                     WHERE o.is_active = 1
-                """)
-                return jsonify({'success': True, 'officers': cur.fetchall()})
+                """
+                params = []
+
+                # If requester is a sector officer, restrict visible officers to the same sector
+                if requester_id:
+                    try:
+                        from database import get_officer
+                        req = get_officer(requester_id)
+                        if req and req.get('role') == 'sector':
+                            query += " AND o.sector_id = %s"
+                            params.append(req.get('sector_id'))
+                    except Exception:
+                        pass
+
+                if role_filter:
+                    query += " AND o.officer_type = %s"
+                    params.append(role_filter)
+
+                cur.execute(query, tuple(params))
+                rows = cur.fetchall()
+                # Remove sector_id from response payload
+                for r in rows:
+                    r.pop('sector_id', None)
+                return jsonify({'success': True, 'officers': rows})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/test-smtp', methods=['POST'])
+def test_smtp():
+    """Simple endpoint to test SMTP sending. POST JSON { to: optional email }"""
+    d = request.get_json() or {}
+    to = d.get('to') or SMTP_USER
+    subject = d.get('subject') or "Test email from Bugesera Harvest System"
+    body = d.get('body') or "This is a test email to verify SMTP settings."
+
+    sent, err = send_email(to, subject, f"<p>{body}</p>")
+    if sent:
+        return jsonify({'success': True, 'message': f'Test email sent to {to}'})
+    return jsonify({'success': False, 'error': err}), 500
 
 @app.route('/api/farms', methods=['GET', 'POST'])
 def manage_farms():
@@ -1067,14 +1432,150 @@ def predict():
         month  = d.get('month', 'October')
         season = d['season']
         # Update dict so build_features sees the auto-detected sector
-        d['sector'] = sector 
+        d['sector'] = sector
+
+        # ── Auto-fetch real weather from Open-Meteo ───────────────────────────
+        if WEATHER_ENABLED:
+            try:
+                live_weather = get_weather_for_prediction(sector, d.get('planting_date'))
+                # Only use live data if values are valid
+                if live_weather.get('Total_Rainfall_mm') and live_weather['Total_Rainfall_mm'] > 0:
+                    d['rainfall']          = live_weather['Total_Rainfall_mm']
+                    d['temperature']       = live_weather['Avg_Temperature_Celsius']
+                    d['humidity']          = live_weather['Relative_Humidity_Pct']
+                    d['sunshine']          = live_weather['Sunshine_Hours_per_Day']
+                    d['wind_speed']        = live_weather['Wind_Speed_kmh']
+                    d['evapotranspiration']= live_weather['Evapotranspiration_mm']
+                    d['_weather_source']   = live_weather.get('source', 'live')
+                    print(f"  [weather] Using live data for {sector}: rain={d['rainfall']}mm temp={d['temperature']}°C")
+                else:
+                    d['_weather_source'] = 'historical-fallback'
+            except Exception as we:
+                print(f"  [weather] Error: {we} — using historical")
+                d['_weather_source'] = 'historical-fallback'
+        else:
+            d['_weather_source'] = 'historical-constants'
 
         # Build feature vector
         X = build_features(d)
 
+        # Predict — apply scaler if best model is Ridge/Linear
+        best_name = META.get('best_model', '')
+        if 'Ridge' in best_name or 'Linear' in best_name or 'Regression' in best_name:
+            X_input = scaler.transform(X)
+        else:
+            X_input = X.values
+
         # Predict — model outputs kg/are directly
-        yield_per_are  = float(model.predict(X)[0])
-        yield_per_are  = max(1.0, round(yield_per_are, 2))   # floor at 1 kg/are
+        yield_per_are_raw = float(model.predict(X_input)[0])
+        yield_per_are_raw = max(1.0, round(yield_per_are_raw, 2))
+
+        # ── Post-prediction adjustments based on ACTUAL dataset values ─────────
+        # All multipliers derived from Bugesera_Agricultural_Dataset_Updated.xlsx
+        adj = yield_per_are_raw
+
+        crop   = d.get('crop', 'Maize')
+        season = d.get('season', 'Season A')
+        pest   = d.get('pest_pressure', 'Low')
+        prev   = d.get('previous_crop', 'Beans')
+        fert_bin = 1 if d.get('fertilizer_used','No') in ('Yes','yes','true',True) else 0
+        irr_bin  = 1 if d.get('irrigation_used','No') in ('Yes','yes','partial','Partial',True) else 0
+
+        # 1. SEED VARIETY — biggest effect after crop type (from dataset)
+        # Maize: Hybrid=30.76, Improved=23.36, Local=17.28
+        # Beans: Improved=16.17, Hybrid=12.02, Local=8.55
+        # Rice:  Improved=43.63, Hybrid=33.54
+        seed = d.get('seed_variety', 'Improved')
+        SEED_MULT = {
+            'Maize': {'Hybrid': 1.32, 'Improved': 1.0, 'Local': 0.74},
+            'Beans': {'Improved': 1.36, 'Hybrid': 1.01, 'Local': 0.72},
+            'Rice':  {'Improved': 1.22, 'Hybrid': 0.94, 'Local': 0.90},
+        }
+        seed_mult = SEED_MULT.get(crop, {}).get(seed, 1.0)
+        adj = adj * seed_mult
+
+        # 2. TERRAIN — from dataset (Hillside vs Valley)
+        # Maize: Hillside=23.65 > Valley=22.38 (+5.7%)
+        # Beans: Valley=12.15 > Hillside=11.79 (+3%)
+        # Rice:  Hillside=36.63 > Valley=35.84 (+2.2%)
+        terrain = d.get('terrain', 'Flat')
+        TERRAIN_MULT = {
+            'Maize': {'Valley': 0.94, 'Flat': 0.97, 'Hillside': 1.0},
+            'Beans': {'Valley': 1.0,  'Flat': 0.97, 'Hillside': 0.97},
+            'Rice':  {'Valley': 0.98, 'Flat': 0.99, 'Hillside': 1.0},
+        }
+        terrain_mult = TERRAIN_MULT.get(crop, {}).get(terrain, 1.0)
+        adj = adj * terrain_mult
+
+        # 3. FERTILIZER — from dataset (fertilizer effect varies by crop)
+        # Dataset shows fertilizer alone doesn't always help — it's the TYPE that matters
+        # Maize: Mixed=23.79 > None=22.94 > NPK=22.62 > Yes=23.13
+        # Organic (Compost) is good for all crops
+        fert_type = d.get('fertilizer_type', 'None')
+        if fert_bin:
+            FERT_TYPE_MULT = {
+                'Maize': {'Inorganic (NPK)':0.98,'Mixed (Organic + Inorganic)':1.04,
+                          'Organic (Compost)':1.03,'DAP':1.01,'NPK':0.98,'Urea':1.00,'Organic':1.03},
+                'Beans': {'Inorganic (NPK)':0.98,'Mixed (Organic + Inorganic)':0.96,
+                          'Organic (Compost)':1.00,'DAP':0.99,'NPK':0.98,'Urea':0.97,'Organic':1.00},
+                'Rice':  {'Inorganic (NPK)':0.94,'Mixed (Organic + Inorganic)':0.98,
+                          'Organic (Compost)':0.98,'DAP':0.96,'NPK':0.94,'Urea':0.95,'Organic':0.98},
+            }
+            fert_mult = FERT_TYPE_MULT.get(crop, {}).get(fert_type, 1.0)
+            adj = adj * fert_mult
+
+            # Fertilizer AMOUNT effect (more kg/are = better, up to optimal)
+            fert_kg = float(d.get('fertilizer_amount_kg_are', 0) or 0)
+            if fert_kg > 0 and fert_type not in ('Organic','Organic (Compost)'):
+                # Optimal ~1.5 kg/are for Maize, 0.8 for Beans, 1.8 for Rice
+                OPT = {'Maize':1.5,'Beans':0.8,'Rice':1.8}
+                opt = OPT.get(crop, 1.5)
+                # Below optimal: proportional boost; above: diminishing returns
+                if fert_kg <= opt:
+                    amount_boost = (fert_kg / opt) * 0.08  # up to +8%
+                else:
+                    amount_boost = 0.08 - (fert_kg - opt) * 0.02  # diminishing
+                adj = adj * (1.0 + max(0, amount_boost))
+
+        # 4. SEASON — from dataset
+        # Maize: A=23.86, B=22.59 (-5.3%)
+        # Beans: A=12.17, B=11.65 (-4.3%)
+        # Rice:  A=37.96, B=34.77 (-8.4%)
+        SEASON_MULT = {
+            'Maize': {'Season A': 1.0, 'Season B': 0.947},
+            'Beans': {'Season A': 1.0, 'Season B': 0.957},
+            'Rice':  {'Season A': 1.0, 'Season B': 0.916},
+        }
+        season_mult = SEASON_MULT.get(crop, {}).get(season, 1.0)
+        adj = adj * season_mult
+
+        # 5. PEST PRESSURE — from dataset
+        # Maize: Low=23.78, Medium=22.77, High=22.85
+        # Rice:  Low=37.14, Medium=36.22, High=35.28
+        PEST_MULT = {
+            'Maize': {'Low':1.0,'Medium':0.957,'High':0.961},
+            'Beans': {'Low':1.0,'Medium':1.021,'High':1.011},
+            'Rice':  {'Low':1.0,'Medium':0.976,'High':0.950},
+        }
+        pest_mult = PEST_MULT.get(crop, {}).get(pest, 1.0)
+        adj = adj * pest_mult
+
+        # 6. IRRIGATION — small positive effect
+        if irr_bin:
+            adj = adj * 1.04  # +4%
+
+        # 7. EXTENSION ACCESS — small positive
+        if d.get('extension_access','Yes') == 'Yes':
+            adj = adj * 1.02  # +2%
+
+        # 8. PREVIOUS CROP — legume rotation
+        if prev in ('Beans','Legume'):
+            adj = adj * 1.03  # +3% nitrogen
+        elif prev == crop:
+            adj = adj * 0.97  # -3% same crop
+
+        # Floor at 1 kg/are
+        yield_per_are = max(1.0, round(adj, 2))
         yield_per_ha   = round(yield_per_are * HA_TO_ARE, 1)
 
         farm_size_are  = float(d['farm_size'])
@@ -1084,23 +1585,13 @@ def predict():
 
         recs = get_recommendations(d['crop'], yield_per_are, d['sector'])
 
-        best = META['best_model']
         # Dynamic Confidence Score based on user inputs
-        conf = (r2 * 100) if r2 > 0 else 84.8
-        
-        # Adjust base on factors:
-        if d.get('fertilizer_used') == True or d.get('fertilizer_used') == 'Yes': conf += 1.5
-        if d.get('irrigation_used') == True or d.get('irrigation_used') == 'Yes': conf += 2.0
-        pest = d.get('pest_pressure', 'Low')
-        if pest == 'High': conf -= 4.5
-        elif pest == 'Medium': conf -= 1.0
-        else: conf += 1.0
-        
-        if d.get('extension_access') == 'Yes': conf += 1.2
-        if d.get('credit_access') == 'Yes': conf += 0.8
-        
-        # Cap confidence between 75% and 98% for realism
-        dynamic_conf = max(75.0, min(98.0, round(conf, 1)))
+        r2   = META['_perf'].get(best, {}).get('r2', 0.85)
+        base_conf = min(97.0, max(72.0, (r2 * 100) - 2.0))
+
+        # Use conf_adj computed in build_features (based on all farmer inputs)
+        conf_adj = d.get('_conf_adj', 0.0)
+        dynamic_conf = max(60.0, min(97.0, round(base_conf + conf_adj, 1)))
 
         # Get auto climate for display
         auto_clim = get_climate(month, season)
@@ -1135,7 +1626,7 @@ def predict():
                 'irrigation_used' : d.get('irrigation_used', False),
                 'soil_type'       : d.get('soil_type', 'Clay'),
                 'farmer_category' : d.get('farmer_category', 'Medium'),
-                'climate_source'  : 'auto (Bugesera historical avg)',
+                'climate_source'  : d.get('_weather_source', 'historical'),
             },
             'recommendations'     : recs,
         }
@@ -1168,7 +1659,7 @@ def predict():
                     'yield_range_low'  : round(result.get('yield_per_are_kg',0)*0.92, 4),
                     'yield_range_high' : round(result.get('yield_per_are_kg',0)*1.08, 4),
                     'district_avg_kg_are': result.get('district_avg_kg_are'),
-                    'confidence_pct'   : result.get('confidence_pct', 84.8),
+                    'confidence_pct'   : result.get('confidence_pct', DEFAULT_MODEL_CONFIDENCE),
                     'model_used'       : result.get('model_used','Gradient Boosting'),
                     'inputs'           : result.get('inputs',{}),
                     'is_offline'       : False,
@@ -1187,10 +1678,13 @@ def predict():
 @app.route('/api/predictions', methods=['GET'])
 def get_predictions():
     fid = request.args.get('farmer_id')
+    page = int(request.args.get('page') or 1)
+    per_page = int(request.args.get('per_page') or request.args.get('limit') or 10)
+    offset = (max(page, 1) - 1) * per_page
     if DB_ENABLED:
         try:
             from database import get_predictions as db_get_predictions
-            data = db_get_predictions(farmer_id=fid or None, limit=100)
+            data = db_get_predictions(farmer_id=fid or None, limit=per_page, offset=offset)
             # Serialize datetime/decimal fields
             import decimal
             clean = []
@@ -1201,7 +1695,8 @@ def get_predictions():
                     elif hasattr(v,'isoformat'):        row[k] = v.isoformat()
                     else:                               row[k] = v
                 clean.append(row)
-            return jsonify({'count': len(clean), 'predictions': clean})
+            has_more = len(clean) == per_page
+            return jsonify({'count': len(clean), 'predictions': clean, 'page': page, 'per_page': per_page, 'has_more': has_more})
         except Exception as e:
             print(f"DB get_predictions error: {e}")
     # Fallback in-memory
@@ -1508,7 +2003,7 @@ def save_pred_endpoint():
                 'yield_range_low'  : float(d.get('yield_per_are_kg', 0)) * 0.92,
                 'yield_range_high' : float(d.get('yield_per_are_kg', 0)) * 1.08,
                 'district_avg_kg_are': float(d.get('district_avg_kg_are', 20)),
-                'confidence_pct'   : float(d.get('confidence_pct', 84.8)),
+                'confidence_pct'   : float(d.get('confidence_pct', DEFAULT_MODEL_CONFIDENCE)),
                 'model_used'       : d.get('model_used','Gradient Boosting'),
                 'inputs'           : {},
                 'is_offline'       : d.get('is_offline', False),
@@ -1529,7 +2024,24 @@ def update_profile():
     
     if DB_ENABLED:
         try:
-            from database import update_user, get_farmer, get_officer
+            from database import update_user, get_farmer, get_officer, check_email_exists
+
+            if 'email' in d:
+                email_val = d['email'].strip().lower()
+                if not is_valid_gmail_address(email_val):
+                    return jsonify({'error': 'Email must be a valid Gmail address ending in @gmail.com.'}), 400
+                d['email'] = email_val
+
+                current_user = get_farmer(uid) if role == 'farmer' else get_officer(uid)
+                if current_user and current_user.get('email', '').lower() != email_val and check_email_exists(email_val):
+                    return jsonify({'error': 'Email already exists. Please use another email address.'}), 400
+
+            if 'phone' in d:
+                phone_val = normalize_rwanda_phone(d['phone'])
+                if not is_valid_rwanda_phone(d['phone']):
+                    return jsonify({'error': 'Phone number must be a valid Rwandan MTN/Tigo number with 10 digits.'}), 400
+                d['phone'] = phone_val
+
             if update_user(uid, role, d):
                 # Fetch updated user info to return to frontend
                 user_row = get_farmer(uid) if role == 'farmer' else get_officer(uid)
@@ -1623,47 +2135,147 @@ def send_advice_route():
     officer_id = d.get('officer_id')
     if not officer_id:
         return jsonify({'error': 'officer_id required'}), 400
+
     try:
-        # If target_group is "All Farmers", we set farmer_id to None for a global broadcast
-        target = d.get('target_group', 'All Farmers')
-        if target == "All Farmers":
-            d['farmer_id'] = None
-        
-        advice_id = save_advice(officer_id, d)
-        
-        # --- EMAIL FOR BROADCASTS ---
-        if DB_ENABLED:
-            try:
-                from database import get_db
+        # Get officer role and enforce routing rules
+        sender = get_officer(officer_id)
+        if not sender:
+            return jsonify({'error': 'Invalid officer_id'}), 404
+
+        officer_type = sender.get('officer_type') or sender.get('role')
+        recipient_officer_id = d.get('recipient_officer_id')
+        target = d.get('target_group', '')
+        subject = d.get('subject', 'Advisory')
+        message = d.get('message', '')
+
+        if officer_type == 'district':
+            # District officers may only send advice to sector officers
+            if d.get('farmer_id') or d.get('sector_id') or target == 'All Farmers':
+                return jsonify({'error': 'District officers can only send advice to sector officers'}), 403
+
+            recipients = []
+            if target == 'all_officers':
+                recipients = []
+                try:
+                    with get_db() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("SELECT officer_id, full_name, email, officer_type FROM officers WHERE officer_type='sector' AND is_active=1")
+                            recipients = cur.fetchall()
+                except Exception as e:
+                    print(f"District advice recipient lookup error: {e}")
+                    recipients = []
+                if not recipients:
+                    return jsonify({'error': 'No active sector officers found to receive advice'}), 404
+            elif recipient_officer_id or target:
+                recipient_id = recipient_officer_id or target
                 with get_db() as conn:
                     with conn.cursor() as cur:
-                        query = "SELECT full_name, email FROM farmers WHERE is_active=1"
-                        if d.get('farmer_id'):
-                            query += " AND farmer_id = %s"
-                            cur.execute(query, (d['farmer_id'],))
-                        elif target != "All Farmers":
-                            # Basic filtering logic for target groups
-                            if "Maize" in target: query += " AND EXISTS (SELECT 1 FROM predictions p WHERE p.farmer_id = farmers.farmer_id AND p.crop_type='Maize')"
-                            elif "Beans" in target: query += " AND EXISTS (SELECT 1 FROM predictions p WHERE p.farmer_id = farmers.farmer_id AND p.crop_type='Beans')"
-                            elif "Rice" in target: query += " AND EXISTS (SELECT 1 FROM predictions p WHERE p.farmer_id = farmers.farmer_id AND p.crop_type='Rice')"
-                            cur.execute(query)
-                        else:
-                            cur.execute(query)
-                        
-                        recipients = cur.fetchall()
-                        print(f"  [broadcast] Sending advice to {len(recipients)} farmers...")
-                        for r in recipients:
-                            subject = f"Agriculture Advice: {d.get('subject', 'Important Update')}"
-                            body_text = f"Hello {r['full_name']},\n\n{d.get('message')}\n\nBest regards,\nAgri Officer"
-                            # Simple HTML wrapper for advice
-                            body_html = f"<h2>Agriculture Advice</h2><p>Hello {r['full_name']},</p><p>{d.get('message')}</p><br><p>Best regards,<br>Agri Officer</p>"
-                            send_email(r['email'], subject, body_html, body_text)
-            except Exception as e:
-                print(f"Broadcast email error: {e}")
-        
-        return jsonify({'success': True, 'advice_id': advice_id})
+                        cur.execute("SELECT officer_id, full_name, email, officer_type FROM officers WHERE officer_id=%s AND is_active=1", (recipient_id,))
+                        recipient = cur.fetchone()
+                if not recipient or recipient.get('officer_type') != 'sector':
+                    return jsonify({'error': 'Target must be an active sector officer'}), 400
+                recipients = [recipient]
+            else:
+                return jsonify({'error': 'No recipient officer specified'}), 400
+
+            advice_ids = []
+            for recipient in recipients:
+                data = {
+                    'recipient_officer_id': recipient['officer_id'],
+                    'subject': subject,
+                    'message': message,
+                    'advice_type': d.get('advice_type', 'general')
+                }
+                advice_ids.append(save_advice(officer_id, data))
+
+            # Send email notifications to sector officers
+            for recipient in recipients:
+                try:
+                    subject_line = f"Agriculture Advisory: {subject}"
+                    body_text = f"Hello {recipient['full_name']},\n\n{message}\n\nBest regards,\nDistrict Agricultural Office"
+                    body_html = f"<h2>District Agriculture Advisory</h2><p>Hello {recipient['full_name']},</p><p>{message}</p><br><p>Best regards,<br>District Agricultural Office</p>"
+                    sent, err = send_email(recipient['email'], subject_line, body_html, body_text)
+                    if not sent:
+                        print(f"District advice email failed: {err}")
+                except Exception as oe:
+                    print(f"District advice email failed: {oe}")
+        # Sector officers may only send advice to farmers within their sector
+        if officer_type == 'sector':
+            # Validate direct farmer sends
+            if d.get('farmer_id'):
+                with get_db() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT fm.sector_id, f.email, f.full_name FROM farmers f JOIN farms fm ON f.farmer_id = fm.farmer_id WHERE f.farmer_id=%s AND f.is_active=1", (d.get('farmer_id'),))
+                        farmer = cur.fetchone()
+                if not farmer or farmer.get('sector_id') != sender.get('sector_id'):
+                    return jsonify({'error': 'Sector officers can only send advice to farmers in their sector'}), 403
+
+            # Always scope broadcasts to the sender's sector
+            d['sector_id'] = sender.get('sector_id')
+            d['farmer_id'] = d.get('farmer_id')
+            d['recipient_officer_id'] = None
+            advice_id = save_advice(officer_id, d)
+
+            # Email farmers in the sender's sector or the direct farmer
+            if DB_ENABLED:
+                try:
+                    with get_db() as conn:
+                        with conn.cursor() as cur:
+                            query = "SELECT f.full_name, f.email FROM farmers f JOIN farms fm ON f.farmer_id = fm.farmer_id WHERE f.is_active=1 AND fm.sector_id=%s"
+                            params = [sender.get('sector_id')]
+                            if d.get('farmer_id'):
+                                query += " AND f.farmer_id=%s"
+                                params.append(d.get('farmer_id'))
+                            cur.execute(query, tuple(params))
+                            recipients = cur.fetchall()
+                            print(f"  [broadcast] Sending advice to {len(recipients)} farmers in sector {sender.get('sector')}...")
+                            for r in recipients:
+                                subject_line = f"Agriculture Advice: {subject}"
+                                body_text = f"Hello {r['full_name']},\n\n{message}\n\nBest regards,\nSector Agricultural Office"
+                                body_html = f"<h2>Agriculture Advice</h2><p>Hello {r['full_name']},</p><p>{message}</p><br><p>Best regards,<br>Sector Agricultural Office</p>"
+                                sent, err = send_email(r['email'], subject_line, body_html, body_text)
+                                if not sent:
+                                    print(f"Sector broadcast email failed for {r['email']}: {err}")
+                except Exception as e:
+                    print(f"Sector broadcast email error: {e}")
+
+            return jsonify({'success': True, 'advice_id': advice_id})
+
+        # Fallback for unknown officer type
+        return jsonify({'error': 'Only district and sector officers may send advice'}), 403
     except Exception as e:
         print(f"Send Advice error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sent-advice', methods=['GET'])
+def get_sent_advice_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    officer_id = request.args.get('officer_id')
+    if not officer_id:
+        return jsonify({'error': 'officer_id required'}), 400
+    try:
+        advice = get_sent_advice(officer_id)
+        return jsonify({'success': True, 'advice': advice})
+    except Exception as e:
+        print(f"Get sent advice error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/revoke-advice', methods=['POST'])
+def revoke_advice_route():
+    if not DB_ENABLED:
+        return jsonify({'error': 'Database not enabled'}), 503
+    d = request.get_json() or {}
+    officer_id = d.get('officer_id')
+    advice_id = d.get('advice_id')
+    if not officer_id or not advice_id:
+        return jsonify({'error': 'officer_id and advice_id required'}), 400
+    try:
+        if revoke_advice(officer_id, advice_id):
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Advice not found or not owned by sender'}), 404
+    except Exception as e:
+        print(f"Revoke advice error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/predictions/record-actual', methods=['POST'])

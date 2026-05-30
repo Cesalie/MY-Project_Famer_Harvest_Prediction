@@ -1,8 +1,30 @@
-import React from 'react';
-import { T } from '../../constants/constants';
+import React, { useState, useEffect } from 'react';
+import { T, API_BASE } from '../../constants/constants';
 
 export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister }) {
   const t = T[lang];
+  const [modelAccuracy, setModelAccuracy] = useState('');
+  const [benchmarks, setBenchmarks] = useState({
+    Maize: 23.2,
+    Beans: 11.9,
+    Rice: 36.4
+  });
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/health`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.accuracy) setModelAccuracy(parseFloat(d.accuracy).toFixed(1));
+      })
+      .catch(() => {});
+
+    fetch(`${API_BASE}/api/model-info`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.benchmarks_kg_are) setBenchmarks(d.benchmarks_kg_are);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f0fdf4" }}>
@@ -15,7 +37,7 @@ export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister
         boxShadow: "0 1px 8px rgba(0,0,0,0.06)", position: "sticky", top: 0, zIndex: 100
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/logo.png" alt="logo" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} />
+          <img src="/logo.svg" alt="logo" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover" }} onError={e => { e.target.src='/logo.png'; }} />
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#14532d", lineHeight: 1.1 }}>{t.appName}</div>
             <div style={{ fontSize: 10, color: "#64748b", fontWeight: 500 }}>Bugesera District · Rwanda</div>
@@ -81,9 +103,9 @@ export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister
           {/* Stats row */}
           <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 48, flexWrap: "wrap" }}>
             {[
-              { val: "15", lbl: lang === "en" ? "Sectors Covered" : "Imirenge" },
-              { val: "84.8%", lbl: lang === "en" ? "Model Accuracy" : "Ubushobozi bwa AI" },
-              { val: "3", lbl: lang === "en" ? "Crop Types" : "Ubwoko bw'Ibihingwa" },
+              { val: "15",              lbl: lang === "en" ? "Sectors Covered" : "Imirenge" },
+              { val: modelAccuracy ? `${modelAccuracy}%` : "…", lbl: lang === "en" ? "Model Accuracy" : "Ubushobozi bwa AI" },
+              { val: "3",              lbl: lang === "en" ? "Crop Types" : "Ubwoko bw'Ibihingwa" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 32, fontWeight: 900, color: "#86efac", fontFamily: "monospace" }}>{s.val}</div>
@@ -167,14 +189,14 @@ export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
             {[
-              { crop: lang === "en" ? "Maize" : "Ibigori", emoji: "🌽", yield: "23.2", tip: lang === "en" ? "DAP + CAN advised" : "DAP + CAN birasabwa" },
-              { crop: lang === "en" ? "Beans" : "Ibishyimbo", emoji: "🫘", yield: "11.9", tip: lang === "en" ? "DAP at planting" : "DAP igihe utera" },
-              { crop: lang === "en" ? "Rice" : "Umuceri", emoji: "🌾", yield: "36.4", tip: lang === "en" ? "Urea at tillering" : "Urea irakenewe" }
+              { crop: lang === "en" ? "Maize" : "Ibigori", emoji: "🌽", value: benchmarks.Maize, tip: lang === "en" ? "DAP + CAN advised" : "DAP + CAN birasabwa" },
+              { crop: lang === "en" ? "Beans" : "Ibishyimbo", emoji: "🫘", value: benchmarks.Beans, tip: lang === "en" ? "DAP at planting" : "DAP igihe utera" },
+              { crop: lang === "en" ? "Rice" : "Umuceri", emoji: "🌾", value: benchmarks.Rice, tip: lang === "en" ? "Urea at tillering" : "Urea irakenewe" }
             ].map(b => (
               <div key={b.crop} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 18, padding: "24px 16px" }}>
                 <div style={{ fontSize: 32, marginBottom: 10 }}>{b.emoji}</div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".5px" }}>{b.crop}</div>
-                <div style={{ fontSize: 34, fontWeight: 900, color: "#86efac", fontFamily: "monospace", margin: "6px 0" }}>{b.yield}</div>
+                <div style={{ fontSize: 34, fontWeight: 900, color: "#86efac", fontFamily: "monospace", margin: "6px 0" }}>{Number(b.value).toFixed(1)}</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>kg/are avg · {b.tip}</div>
               </div>
             ))}
