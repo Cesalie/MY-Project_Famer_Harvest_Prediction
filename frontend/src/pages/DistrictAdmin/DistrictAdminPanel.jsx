@@ -101,27 +101,22 @@ export default function DistrictAdminPanel({ user, lang }) {
     <div className="fade-up" style={{ paddingBottom: 40 }}>
 
       {/* ── Register Officer Form ─────────────── */}
-      <div className="sec-hd"><i className="bi bi-person-plus"></i> {t.registerOfficer || 'Register Agricultural Officer'}</div>
+      <div className="sec-hd"><i className="bi bi-person-plus"></i> {lang === 'en' ? 'Register New Sector Agri Officer' : 'Andika Ofisiye w\'Ubuhinzi w\'Umurenge'}</div>
       <div className="card" style={{ marginBottom: 28 }}>
 
         {status && (
-          <div
-            style={{
-              marginBottom: 14,
-              padding: '12px 16px',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 600,
-              background: status.type === 'ok' ? 'var(--g50)'    : 'var(--red-l)',
-              color:      status.type === 'ok' ? 'var(--g800)'   : 'var(--red-d)',
-              border:     `1px solid ${status.type === 'ok' ? 'var(--g300)' : 'transparent'}`,
-            }}
-          >
-            <i className={`bi bi-${status.type === 'ok' ? 'check-circle' : 'exclamation-triangle'}`}></i>{' '}
+          <div style={{
+            marginBottom: 14, padding: '12px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+            background: status.type === 'ok' ? '#ccfbf1' : 'var(--red-l)',
+            color:      status.type === 'ok' ? '#0f766e' : 'var(--red-d)',
+            border:     `1px solid ${status.type === 'ok' ? '#99f6e4' : 'transparent'}`,
+          }}>
+            <i className={`bi bi-${status.type === 'ok' ? 'check-circle-fill' : 'exclamation-triangle-fill'}`}></i>{' '}
             {status.msg}
           </div>
         )}
 
+        {/* Row 1: Full Name + Email */}
         <div className="frow">
           <div className="fgrp">
             <label className="flabel">{t.fullName || 'Full Name'} *</label>
@@ -145,6 +140,7 @@ export default function DistrictAdminPanel({ user, lang }) {
           </div>
         </div>
 
+        {/* Row 2: Phone + Assigned Sector */}
         <div className="frow">
           <div className="fgrp">
             <label className="flabel">{t.phoneReg || 'Phone Number'}</label>
@@ -155,38 +151,46 @@ export default function DistrictAdminPanel({ user, lang }) {
               placeholder="+250 78..."
             />
           </div>
-        </div>
-
-        <div className="frow">
           <div className="fgrp">
-            <label className="flabel">{t.assignedSector || 'Assigned Sector'}</label>
+            <label className="flabel">{t.assignedSector || 'Assigned Sector'} *</label>
             <select className="finput" value={sector} onChange={e => setSector(e.target.value)}>
               {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <div className="fgrp">
-            <label className="flabel">{t.deptLabel || 'Department'}</label>
-            <input className="finput" type="text" value={dept} disabled />
-          </div>
         </div>
 
-        <div
-          style={{
-            background: 'var(--s50)',
-            border: '1px solid var(--s200)',
-            borderRadius: 8,
-            padding: '10px 14px',
-            fontSize: 12,
-            color: 'var(--s600)',
-            marginBottom: 14,
-          }}
-        >
+        {/* Department — fixed, shown as info badge */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#f0fdfa', border: '1.5px solid #99f6e4',
+          borderRadius: 10, padding: '10px 14px', marginBottom: 14
+        }}>
+          <i className="bi bi-briefcase-fill" style={{ color: '#0d9488', fontSize: 16 }}></i>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#0f766e', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+              {t.deptLabel || 'Department'}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#0f3d38' }}>Crop Production</div>
+          </div>
+          <span style={{ marginLeft: 'auto', background: '#0d9488', color: 'white', borderRadius: 99, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
+            {lang === 'en' ? 'Fixed' : 'Ihoraho'}
+          </span>
+        </div>
+
+        <div style={{
+          background: 'var(--s50)', border: '1px solid var(--s200)',
+          borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--s600)', marginBottom: 14,
+        }}>
           <i className="bi bi-info-circle"></i>{' '}
-          A default password <strong>harvest2024</strong> will be assigned and the login credentials will be sent to the officer's email. The officer should change the password on first login.
+          {lang === 'en'
+            ? <>A default password <strong>harvest2024</strong> will be assigned. Login credentials will be sent to the officer's email.</>
+            : <>Ijambo ry'ibanga <strong>harvest2024</strong> rizashyirwa. Amakuru yo kwinjira azohererezwa kuri email y'ofisiye.</>}
         </div>
 
         <button className="btn btn-primary" onClick={handleRegister} disabled={loading} style={{ marginTop: 4 }}>
-          {loading ? <><i className="bi bi-arrow-repeat spin"></i> Registering…</> : <><i className="bi bi-person-plus"></i> {t.registerTab || 'Register Officer'}</>}
+          {loading
+            ? <><i className="bi bi-arrow-repeat spin"></i> {lang === 'en' ? 'Registering…' : 'Kwandika…'}</>
+            : <><i className="bi bi-person-plus"></i> {lang === 'en' ? 'Register Sector Officer' : 'Andika Ofisiye w\'Umurenge'}</>}
         </button>
       </div>
 
