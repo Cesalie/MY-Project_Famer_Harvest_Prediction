@@ -1071,6 +1071,80 @@ def get_weather():
     return jsonify({'success': False, 'error': 'Weather service not available'}), 503
 
 
+@app.route('/api/weather/forecast', methods=['GET'])
+def get_weather_forecast():
+    """Get 7-day forecast + current conditions for a sector from Open-Meteo."""
+    sector = request.args.get('sector', 'Nyamata')
+    if not WEATHER_ENABLED:
+        return jsonify({'success': False, 'error': 'Weather service not available'}), 503
+    try:
+        import urllib3
+        urllib3.disable_warnings()
+        coords = SECTOR_COORDS.get(sector, SECTOR_COORDS.get('Nyamata', {'lat': -2.15, 'lon': 30.08}))
+        lat, lon = coords['lat'], coords['lon']
+
+        import requests as req
+        url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat, "longitude": lon,
+            "daily": [
+                "precipitation_sum", "temperature_2m_max", "temperature_2m_min",
+                "relative_humidity_2m_max", "relative_humidity_2m_min",
+                "sunshine_duration", "wind_speed_10m_max", "weathercode"
+            ],
+            "current_weather": True,
+            "timezone": "Africa/Kigali",
+            "past_days": 0,
+            "forecast_days": 7,
+        }
+        resp = req.get(url, params=params, timeout=8, verify=False)
+        resp.raise_for_status()
+        data = resp.json()
+
+        daily = data.get('daily', {})
+        current = data.get('current_weather', {})
+
+        # Build 7-day forecast list
+        forecast = []
+        dates = daily.get('time', [])
+        for i, date in enumerate(dates):
+            def safe(lst, idx): return lst[idx] if lst and idx < len(lst) and lst[idx] is not None else None
+            tmax = safe(daily.get('temperature_2m_max', []), i)
+            tmin = safe(daily.get('temperature_2m_min', []), i)
+            forecast.append({
+                'date':     date,
+                'temp_max': tmax,
+                'temp_min': tmin,
+                'temp_avg': round((tmax + tmin) / 2, 1) if tmax and tmin else None,
+                'rain':     safe(daily.get('precipitation_sum', []), i),
+                'humidity': round((
+                    (safe(daily.get('relative_humidity_2m_max', []), i) or 0) +
+                    (safe(daily.get('relative_humidity_2m_min', []), i) or 0)
+                ) / 2, 1),
+                'sunshine': round((safe(daily.get('sunshine_duration', []), i) or 0) / 3600, 1),
+                'wind':     safe(daily.get('wind_speed_10m_max', []), i),
+                'code':     safe(daily.get('weathercode', []), i),
+            })
+
+        return jsonify({
+            'success': True,
+            'sector': sector,
+            'current': {
+                'temperature': current.get('temperature'),
+                'wind_speed':  current.get('windspeed'),
+                'is_day':      current.get('is_day', 1),
+                'weathercode': current.get('weathercode'),
+                'time':        current.get('time'),
+            },
+            'forecast': forecast,
+            'source': 'open-meteo-live',
+            'fetched_at': datetime.now().isoformat(),
+        })
+    except Exception as e:
+        print(f"  [weather/forecast] Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health():
     best = META['best_model']

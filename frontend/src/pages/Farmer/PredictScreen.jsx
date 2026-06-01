@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useMemo } from 'react';
+﻿import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { 
   T, SECTORS, SEASONS, CROPS, SOILS, CROP_BENCH, 
   SECTOR_SOIL_TYPE, SOIL_DISPLAY, API_BASE, 
@@ -79,7 +79,40 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
 
   const set = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
-  const autoClimate = (form.month && form.season) ? getClimate(form.month, form.season) : null;
+  // ── Live weather from Open-Meteo ──────────────────────────────────────────
+  const [liveWeather, setLiveWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+
+  useEffect(() => {
+    if (!form.sector) return;
+    setWeatherLoading(true);
+    fetch(`${API_BASE}/api/weather?sector=${encodeURIComponent(form.sector)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.weather) setLiveWeather(d.weather);
+        setWeatherLoading(false);
+      })
+      .catch(() => { setWeatherLoading(false); });
+  }, [form.sector]);
+
+  // Build autoClimate — prefer live data, fallback to historical
+  const autoClimate = useMemo(() => {
+    if (!form.month && !form.season) return null;
+    if (liveWeather && liveWeather.Avg_Temperature_Celsius) {
+      return {
+        temperature:       liveWeather.Avg_Temperature_Celsius,
+        rainfall:          liveWeather.Total_Rainfall_mm,
+        humidity:          liveWeather.Relative_Humidity_Pct,
+        sunshine:          liveWeather.Sunshine_Hours_per_Day,
+        windSpeed:         liveWeather.Wind_Speed_kmh,
+        evapotranspiration:liveWeather.Evapotranspiration_mm,
+        source:            liveWeather.source,
+      };
+    }
+    return form.month && form.season ? getClimate(form.month, form.season) : null;
+  }, [form.month, form.season, liveWeather]);
+
+  const isLiveClimate = liveWeather?.source === 'open-meteo-live';
 
   // ── Planting date logic ────────────────────────────────────────────────────
   const today = new Date();
@@ -411,7 +444,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
 
             {/* Climate preview */}
             <div className="m-fgrp">
-              <ClimateCard climate={autoClimate} month={form.month} season={form.season} lang={lang} />
+              <ClimateCard climate={autoClimate} month={form.month} season={form.season} lang={lang} isLive={isLiveClimate} />
             </div>
 
             <div className="form-section-title" style={{marginTop: 24}}>
@@ -701,7 +734,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
               </button>
             </div>
 
-            <ClimateCard climate={autoClimate} month={form.month} season={form.season} lang={lang} />
+            <ClimateCard climate={autoClimate} month={form.month} season={form.season} lang={lang} isLive={isLiveClimate} />
 
             <div className="modern-info-banner">
               <i className="bi bi-stars"></i>
@@ -717,4 +750,5 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
     </>
   );
 }
+
 
