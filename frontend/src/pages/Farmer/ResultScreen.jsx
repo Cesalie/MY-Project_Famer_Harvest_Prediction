@@ -241,12 +241,12 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 2 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-                background: r.type === "success" ? "var(--g100)" : r.type === "warning" ? "#fef3c7" : "#dbeafe",
-                color: r.type === "success" ? "var(--g700)" : r.type === "warning" ? "#92400e" : "#1d4ed8"
+                background: r.type === "success" ? "var(--g100)" : r.type === "warning" ? "#fef3c7" : "#ccfbf1",
+                color: r.type === "success" ? "var(--g700)" : r.type === "warning" ? "#92400e" : "#0d9488"
               }}>
                 <i className={`bi ${r.icon || 'bi-lightbulb'}`}></i>
               </div>
-              <div style={{ fontWeight: 800, fontSize: 13, color: r.type === "success" ? "var(--g800)" : r.type === "warning" ? "#92400e" : "#1e3a8a", line: 1.3 }}>
+              <div style={{ fontWeight: 800, fontSize: 13, color: r.type === "success" ? "var(--g800)" : r.type === "warning" ? "#92400e" : "#0f3d38", line: 1.3 }}>
                 {r.category?.split(" / ")[lang === "en" ? 0 : 1] || r.category}
               </div>
             </div>

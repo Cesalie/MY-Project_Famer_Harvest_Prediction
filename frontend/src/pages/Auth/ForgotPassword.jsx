@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { T, API_BASE } from '../../constants/constants';
 
 export default function ForgotPassword({ lang, setLang, onBack, isModal }) {
@@ -115,13 +115,13 @@ export default function ForgotPassword({ lang, setLang, onBack, isModal }) {
           </div>
         )}
         {success && (
-          <div style={{ background:'linear-gradient(135deg,#f0fdf4,#dcfce7)', border:'1.5px solid #86efac', borderRadius:14, padding:'16px 20px', marginBottom:16, display:'flex', alignItems:'flex-start', gap:12 }}>
-            <div style={{ width:34, height:34, background:'#16a34a', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <div style={{ background:'linear-gradient(135deg,#f0fdfa,#ccfbf1)', border:'1.5px solid #5eead4', borderRadius:14, padding:'16px 20px', marginBottom:16, display:'flex', alignItems:'flex-start', gap:12 }}>
+            <div style={{ width:34, height:34, background:'#0d9488', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
               <i className="bi bi-check-lg" style={{ color:'white', fontSize:16 }}></i>
             </div>
             <div>
-              <div style={{ fontWeight:800, fontSize:13, color:'#14532d', marginBottom:3 }}>Success</div>
-              <div style={{ fontSize:13, color:'#166534', lineHeight:1.5 }}>{success}</div>
+              <div style={{ fontWeight:800, fontSize:13, color:'#0f3d38', marginBottom:3 }}>Success</div>
+              <div style={{ fontSize:13, color:'#0f766e', lineHeight:1.5 }}>{success}</div>
             </div>
           </div>
         )}
@@ -231,3 +231,4 @@ export default function ForgotPassword({ lang, setLang, onBack, isModal }) {
     </div>
   );
 }
+

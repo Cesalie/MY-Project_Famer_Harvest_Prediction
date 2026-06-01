@@ -31,7 +31,7 @@ export default function TipsScreen({ onNavigate, lang, setLang, user }) {
       icon: <i className="bi bi-droplet"></i>,
       title: lang === "en" ? "Water Management" : "Gucunga Amazi",
       bg: "var(--blue-l)",
-      bc: "#93c5fd",
+      bc: "#5eead4",
       tc: "var(--blue-d)",
       items: lang === "en"
         ? [

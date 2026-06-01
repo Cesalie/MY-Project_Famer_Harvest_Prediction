@@ -1,7 +1,7 @@
 import React from 'react';
 import { T } from '../../constants/constants';
 
-export default function Sidebar({ current, onNavigate, user, onLogout, lang, setLang }) {
+export default function Sidebar({ current, onNavigate, user, onLogout, lang, setLang, unreadMessages = 0 }) {
   const t = T[lang];
 
   if (!user) return null;
@@ -45,6 +45,7 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
         { id: "farmers",      icon: <i className="bi bi-people"></i>,             label: lang === "en" ? "Farmers" : "Abahinzi" },
         { id: "predictions",  icon: <i className="bi bi-clipboard2-data"></i>,    label: lang === "en" ? "Predictions" : "Ibisobanuro" },
         { id: "reports",      icon: <i className="bi bi-file-earmark-text"></i>,  label: t.reportsTab },
+        { id: "messages",     icon: <i className="bi bi-bell-fill"></i>,          label: lang === "en" ? "Messages" : "Ubutumwa", badge: unreadMessages > 0 ? unreadMessages : null },
       ] : [
         { id: "overview", icon: <i className="bi bi-bar-chart-line"></i>, label: t.overview },
         { id: "sectors",  icon: <i className="bi bi-geo-alt"></i>,        label: t.sectorsTab },
@@ -59,10 +60,21 @@ export default function Sidebar({ current, onNavigate, user, onLogout, lang, set
         <>
           <div className="sn-section">Dashboard</div>
           {officerItems.map(item => (
-            <button key={item.id} className={`sn-item ${current === item.id ? "act" : ""}`} onClick={() => onNavigate(item.id)}>
+            <button key={item.id} className={`sn-item ${current === item.id ? "act" : ""}`} onClick={() => onNavigate(item.id)}
+              style={{ position: 'relative' }}>
               <span className="sn-icon">{item.icon}</span>
               <span className="sn-label">{item.label}</span>
-              {current === item.id && <span className="sn-badge">●</span>}
+              {item.badge && (
+                <span style={{
+                  marginLeft: 'auto',
+                  background: '#dc2626', color: 'white',
+                  borderRadius: '50%', minWidth: 18, height: 18,
+                  fontSize: 10, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 4px'
+                }}>{item.badge}</span>
+              )}
+              {current === item.id && !item.badge && <span className="sn-badge">●</span>}
             </button>
           ))}
         </>

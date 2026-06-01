@@ -1,10 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { T, fmtDate, CROP_BENCH } from '../../constants/constants';
 import Topbar from '../../components/Common/Topbar';
 import CropIcon from '../../components/Common/CropIcon';
 
-const CROP_COLORS = { Maize: '#f59e0b', Beans: '#22c55e', Rice: '#3b82f6' };
-const CROP_BG    = { Maize: '#fef3c7', Beans: '#dcfce7', Rice: '#dbeafe' };
+const CROP_COLORS = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' };
+const CROP_BG    = { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' };
 
 export default function FarmerDashboard({ user, onNavigate, onResult, history = [], lang, setLang, notifications = [] }) {
   const t = T[lang];
@@ -27,7 +27,7 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
       <Topbar
         title={
           <div className="dash-header-clean">
-            <span className="dash-header-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
+            <span className="dash-header-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}>
               <i className="bi bi-speedometer2"></i>
             </span>
             <div className="dash-header-text">
@@ -47,7 +47,7 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
                 <span style={{ position:'absolute', top:6, right:6, width:8, height:8, background:'#ef4444', borderRadius:'50%', border:'2px solid white' }}></span>
               )}
             </button>
-            <button className="dash-action-btn" onClick={() => onNavigate('profile')} style={{ background: '#16a34a', color: 'white', border: 'none' }}>
+            <button className="dash-action-btn" onClick={() => onNavigate('profile')} style={{ background: '#0d9488', color: 'white', border: 'none' }}>
               <span style={{ fontWeight: 800, fontSize: 13 }}>{user.name ? user.name.charAt(0).toUpperCase() : 'F'}</span>
             </button>
           </div>
@@ -57,10 +57,10 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
       <div className="scroll fade-up">
 
         {/* ── Welcome Banner ── */}
-        <div className="modern-welcome-card" style={{ marginBottom: 24 }}>
+        <div className="modern-welcome-card" style={{ marginBottom: 24, background: 'linear-gradient(135deg, #0f3d38 0%, #0d9488 100%)' }}>
           <div className="welcome-content">
             <h2 className="welcome-greet">
-              {t.welcome}, <span className="welcome-name">{user.name?.split(' ')[0] || 'Farmer'}</span>! 👋
+              {t.welcome}, <span className="welcome-name">{user.name?.split(' ')[0] || 'Farmer'}</span>!
             </h2>
             <p className="welcome-sub" style={{ marginBottom: 20 }}>
               <i className="bi bi-geo-alt-fill"></i> {user.sector || 'Nyamata'} · ID: <strong>{user.id || user.farmer_id}</strong>
@@ -90,7 +90,7 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
         {/* ── Notifications Banner ── */}
         {unread > 0 && (
           <div onClick={() => onNavigate('notifications')} style={{
-            background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: 'white',
+            background: 'linear-gradient(135deg,#0f3d38,#0d9488)', color: 'white',
             borderRadius: 16, padding: '14px 20px', marginBottom: 20,
             display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(59,130,246,0.3)'
@@ -117,8 +117,8 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
           </div>
           <div className="modern-action-grid">
             {[
-              { icon: 'bi-tree-fill',         label: t.newPred,                          desc: lang==='en'?'Start new prediction':'Teganya isarura',  color:'#16a34a', target:'predict' },
-              { icon: 'bi-bar-chart-line-fill',label: lang==='en'?'History':'Amateka',   desc: lang==='en'?'View past predictions':'Reba amateka',     color:'#3b82f6', target:'history' },
+              { icon: 'bi-tree-fill', label: t.newPred, desc: lang==='en'?'Start new prediction':'Teganya isarura', color:'#0d9488', target:'predict' },
+              { icon: 'bi-bar-chart-line-fill',label: lang==='en'?'History':'Amateka',   desc: lang==='en'?'View past predictions':'Reba amateka',     color:'#0d9488', target:'history' },
               { icon: 'bi-cloud-sun-fill',     label: lang==='en'?'Weather':'Ikirere',   desc: lang==='en'?'Local forecast':'Amakuru y\'ikirere',       color:'#f59e0b', target:'weather' },
               { icon: 'bi-lightbulb-fill',     label: lang==='en'?'Tips':'Inama',        desc: lang==='en'?'Agronomic advice':'Inama z\'ubuhinzi',      color:'#8b5cf6', target:'tips'    },
             ].map(item => (
@@ -143,10 +143,10 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
               🏆 {lang === 'en' ? 'Your Best Prediction' : 'Igisobanuro Cyawe Cyiza Cyane'}
             </div>
             <div onClick={() => onResult(bestPred)} style={{
-              background:'linear-gradient(135deg,#14532d,#16a34a)', color:'white',
+              background:'linear-gradient(135deg,#0f3d38,#0d9488)', color:'white',
               borderRadius:20, padding:'20px 24px', cursor:'pointer',
               display:'flex', alignItems:'center', gap:16,
-              boxShadow:'0 8px 24px rgba(22,163,74,0.25)'
+              boxShadow:'0 8px 24px rgba(13,148,136,0.25)'
             }}>
               <div style={{ width:52, height:52, background:'rgba(255,255,255,0.15)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>
                 <CropIcon name={bestPred.crop} size={28} />
@@ -207,8 +207,8 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
                     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                       <span style={{
                         fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:99,
-                        background: parseFloat(vs)>=0?'#dcfce7':'#fee2e2',
-                        color: parseFloat(vs)>=0?'#16a34a':'#dc2626'
+                        background: parseFloat(vs)>=0?'#ccfbf1':'#fee2e2',
+                        color: parseFloat(vs)>=0?'#0d9488':'#dc2626'
                       }}>
                         {parseFloat(vs)>=0?'+':''}{vs}%
                       </span>
@@ -229,3 +229,4 @@ export default function FarmerDashboard({ user, onNavigate, onResult, history = 
     </>
   );
 }
+

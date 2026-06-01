@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { T, API_BASE } from '../../constants/constants';
 
 export default function SectorFarmers({ sectorName, sectorId, setSelectedFarmerId, lang }) {
@@ -37,7 +37,7 @@ export default function SectorFarmers({ sectorName, sectorId, setSelectedFarmerI
     });
 
   const initials = (name) => (name || 'F').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const avatarColors = ['#16a34a', '#0284c7', '#d97706', '#7c3aed', '#dc2626', '#0891b2'];
+  const avatarColors = ['#0d9488', '#0d9488', '#d97706', '#7c3aed', '#dc2626', '#0891b2'];
   const avatarColor = (id) => avatarColors[(id || '').charCodeAt(0) % avatarColors.length];
 
   return (
@@ -128,3 +128,4 @@ export default function SectorFarmers({ sectorName, sectorId, setSelectedFarmerI
     </div>
   );
 }
+

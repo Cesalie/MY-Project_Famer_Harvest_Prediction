@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { T, CLIMATE, API_BASE } from '../../constants/constants';
 import Topbar from '../../components/Common/Topbar';
 
@@ -49,7 +49,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
 
         {/* ── Live Weather Card ── */}
         <div style={{
-          background: 'linear-gradient(135deg, #0c4a6e, #0284c7)',
+          background: 'linear-gradient(135deg, #0f3d38, #0d9488)',
           borderRadius: 20, padding: '20px 22px', marginBottom: 16, color: 'white'
         }}>
           {/* Header */}
@@ -60,7 +60,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
               </div>
               <div style={{ fontSize: 11, opacity: .65 }}>
                 {isLive
-                  ? <><i className="bi bi-broadcast" style={{ color: '#86efac' }}></i> {lang === 'en' ? 'Live from Open-Meteo' : 'Amakuru Mazima — Open-Meteo'}</>
+                  ? <><i className="bi bi-broadcast" style={{ color: '#5eead4' }}></i> {lang === 'en' ? 'Live from Open-Meteo' : 'Amakuru Mazima — Open-Meteo'}</>
                   : <><i className="bi bi-clock-history"></i> {lang === 'en' ? 'Historical averages' : 'Impuzandengo y\'amateka'}</>}
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
             <div key={d.m} className="bar-row">
               <div className="bar-lbl">{d.m}</div>
               <div className="bar-track">
-                <div className="bar-fill" style={{ width: `${((d.temp - 20) / 8) * 100}%`, background: 'linear-gradient(90deg,#3b82f6,#f97316)' }} />
+                <div className="bar-fill" style={{ width: `${((d.temp - 20) / 8) * 100}%`, background: 'linear-gradient(90deg,#0d9488,#f97316)' }} />
               </div>
               <div className="bar-val">{d.temp}°C</div>
             </div>
@@ -165,3 +165,4 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
     </>
   );
 }
+

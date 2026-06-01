@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+﻿import React, { useState, useCallback, useMemo } from 'react';
 import { 
   T, SECTORS, SEASONS, CROPS, SOILS, CROP_BENCH, 
   SECTOR_SOIL_TYPE, SOIL_DISPLAY, API_BASE, 
@@ -492,7 +492,7 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
 
                 {/* Organic — no amount needed */}
                 {form.fertilizerType === 'Organic' && (
-                  <div className="fade-up" style={{ background:'#f0fdf4', borderRadius:10, padding:'10px 12px', fontSize:12, color:'var(--g800)', fontWeight:600 }}>
+                  <div className="fade-up" style={{ background:'#f0fdfa', borderRadius:10, padding:'10px 12px', fontSize:12, color:'var(--g700)', fontWeight:600 }}>
                     <i className="bi bi-check-circle-fill" style={{ marginRight:6, color:'var(--g600)' }}></i>
                     {lang === 'en'
                       ? 'Organic fertilizer (compost/manure) — no specific amount needed. Good for soil health.'
@@ -579,20 +579,20 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
             {plantingStatus && (
               <div className="fade-up" style={{
                 background: plantingStatus.diffDays > 0
-                  ? 'linear-gradient(135deg,#eff6ff,#dbeafe)'
-                  : 'linear-gradient(135deg,#f0fdf4,#dcfce7)',
-                border: `1.5px solid ${plantingStatus.diffDays > 0 ? '#93c5fd' : '#86efac'}`,
+                  ? 'linear-gradient(135deg,#f0fdfa,#ccfbf1)'
+                  : 'linear-gradient(135deg,#f0fdfa,#ccfbf1)',
+                border: `1.5px solid ${plantingStatus.diffDays > 0 ? '#5eead4' : '#5eead4'}`,
                 borderRadius: 16, padding: '16px 18px', marginBottom: 16
               }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
                   <div style={{
                     width:36, height:36, borderRadius:'50%',
-                    background: plantingStatus.diffDays > 0 ? '#3b82f6' : '#16a34a',
+                    background: plantingStatus.diffDays > 0 ? '#0d9488' : '#0d9488',
                     display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:16
                   }}>
                     <i className={`bi ${plantingStatus.diffDays > 0 ? 'bi-calendar-event' : 'bi-check-circle-fill'}`}></i>
                   </div>
-                  <div style={{ fontWeight:800, fontSize:14, color: plantingStatus.diffDays > 0 ? '#1e40af' : '#14532d' }}>
+                  <div style={{ fontWeight:800, fontSize:14, color: plantingStatus.diffDays > 0 ? '#0f3d38' : '#0f3d38' }}>
                     {plantingStatus.diffDays > 0
                       ? (lang==='en' ? `Planting in ${plantingStatus.diffDays} days` : `Gutera mu minsi ${plantingStatus.diffDays}`)
                       : plantingStatus.diffDays === 0
@@ -717,3 +717,4 @@ export default function PredictScreen({ user, onNavigate, onResult, onSave, hist
     </>
   );
 }
+

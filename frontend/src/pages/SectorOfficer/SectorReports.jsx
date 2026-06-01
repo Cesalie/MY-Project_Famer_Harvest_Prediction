@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { T, API_BASE, fmtDate } from '../../constants/constants';
 
 export default function SectorReports({ user, dashData, lang }) {
@@ -206,7 +206,7 @@ export default function SectorReports({ user, dashData, lang }) {
         <div className="fade-up">
           <div className="so-report-card">
             <div className="so-report-card-header">
-              <div className="so-report-card-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+              <div className="so-report-card-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}>
                 <i className="bi bi-file-earmark-arrow-up-fill"></i>
               </div>
               <div>
@@ -295,7 +295,7 @@ export default function SectorReports({ user, dashData, lang }) {
         <div className="fade-up">
           <div className="so-report-card">
             <div className="so-report-card-header">
-              <div className="so-report-card-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
+              <div className="so-report-card-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}>
                 <i className="bi bi-megaphone-fill"></i>
               </div>
               <div>
@@ -485,3 +485,4 @@ export default function SectorReports({ user, dashData, lang }) {
     </div>
   );
 }
+

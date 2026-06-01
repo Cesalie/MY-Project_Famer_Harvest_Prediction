@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { T, API_BASE, CROP_ICON, fmtDate, CROP_BENCH } from '../../constants/constants';
 
 export default function PredictionDetailView({ prediction, onBack, lang, user, onUpdate }) {
@@ -13,8 +13,8 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
   const bench = CROP_BENCH[p.crop || p.crop_type] || 20;
   const yieldVal = parseFloat(p.yield_per_are_kg || 0);
   const pctVsBench = bench ? ((yieldVal - bench) / bench * 100).toFixed(1) : 0;
-  const gradeColor = { Excellent: '#16a34a', Good: '#0284c7', Average: '#d97706', 'Below Average': '#dc2626' }[p.yield_grade] || '#64748b';
-  const gradeBg = { Excellent: '#dcfce7', Good: '#e0f2fe', Average: '#fef3c7', 'Below Average': '#fee2e2' }[p.yield_grade] || '#f1f5f9';
+  const gradeColor = { Excellent: '#0d9488', Good: '#0d9488', Average: '#d97706', 'Below Average': '#dc2626' }[p.yield_grade] || '#64748b';
+  const gradeBg = { Excellent: '#ccfbf1', Good: '#ccfbf1', Average: '#fef3c7', 'Below Average': '#fee2e2' }[p.yield_grade] || '#f1f5f9';
 
   const handleSaveActual = async () => {
     if (!actualYield) return;
@@ -88,8 +88,8 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
       {/* KPI Row */}
       <div className="so-pred-kpi-row">
         {[
-          { icon: 'bi-graph-up', val: `${yieldVal.toFixed(1)} kg/are`, lbl: lang === 'en' ? 'Predicted Yield' : 'Umusaruro Wateganyijwe', color: '#16a34a', bg: '#dcfce7' },
-          { icon: 'bi-box-seam', val: `${parseFloat(p.total_yield_kg || 0).toFixed(0)} kg`, lbl: lang === 'en' ? 'Total Harvest' : 'Isarura Ryose', color: '#0284c7', bg: '#e0f2fe' },
+          { icon: 'bi-graph-up', val: `${yieldVal.toFixed(1)} kg/are`, lbl: lang === 'en' ? 'Predicted Yield' : 'Umusaruro Wateganyijwe', color: '#0d9488', bg: '#ccfbf1' },
+          { icon: 'bi-box-seam', val: `${parseFloat(p.total_yield_kg || 0).toFixed(0)} kg`, lbl: lang === 'en' ? 'Total Harvest' : 'Isarura Ryose', color: '#0d9488', bg: '#ccfbf1' },
           { icon: 'bi-rulers', val: `${p.area_planted_are || 0} are`, lbl: lang === 'en' ? 'Area Planted' : 'Akarima Gatewe', color: '#d97706', bg: '#fef3c7' },
           { icon: 'bi-shield-check', val: p.confidence_pct ? `${p.confidence_pct}%` : '…', lbl: lang === 'en' ? 'Confidence' : 'Inyemeza', color: '#7c3aed', bg: '#ede9fe' },
         ].map((k, i) => (
@@ -108,7 +108,7 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
         <div className="so-bench-label">{lang === 'en' ? 'vs District Average' : 'vs Impuzandengo y\'Akarere'}</div>
         <div className="so-bench-row">
           <div className="so-bench-item">
-            <div className="so-bench-val" style={{ color: '#16a34a' }}>{yieldVal.toFixed(1)}</div>
+            <div className="so-bench-val" style={{ color: '#0d9488' }}>{yieldVal.toFixed(1)}</div>
             <div className="so-bench-sub">{lang === 'en' ? 'This Prediction' : 'Iki Gisobanuro'}</div>
           </div>
           <div className={`so-bench-vs ${parseFloat(pctVsBench) >= 0 ? 'pos' : 'neg'}`}>
@@ -221,7 +221,7 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
           <div className="so-climate-grid">
             {[
               { icon: 'bi-thermometer-half', lbl: t.temperature, val: `${p.avg_temperature || p.inputs?.temperature || '—'}°C`, color: '#dc2626', bg: '#fee2e2' },
-              { icon: 'bi-cloud-rain', lbl: t.rainfall, val: `${p.total_rainfall_mm || p.inputs?.rainfall || '—'} mm`, color: '#0284c7', bg: '#e0f2fe' },
+              { icon: 'bi-cloud-rain', lbl: t.rainfall, val: `${p.total_rainfall_mm || p.inputs?.rainfall || '—'} mm`, color: '#0d9488', bg: '#ccfbf1' },
               { icon: 'bi-droplet-half', lbl: t.humidity, val: `${p.humidity_pct || p.inputs?.humidity || '—'}%`, color: '#0891b2', bg: '#cffafe' },
               { icon: 'bi-sun', lbl: t.sunshine, val: `${p.sunshine_hrs || p.inputs?.sunshine || '—'} hrs/day`, color: '#d97706', bg: '#fef3c7' },
             ].map((c, i) => (
@@ -305,7 +305,7 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
                   </div>
                   <div className="so-accuracy-item">
                     <div className="so-accuracy-lbl">{lang === 'en' ? 'Model Accuracy' : 'Ubushobozi bwa Modeli'}</div>
-                    <div className="so-accuracy-val" style={{ color: parseFloat(accuracy) >= 85 ? '#16a34a' : '#d97706' }}>
+                    <div className="so-accuracy-val" style={{ color: parseFloat(accuracy) >= 85 ? '#0d9488' : '#d97706' }}>
                       {accuracy}%
                     </div>
                   </div>
@@ -329,3 +329,4 @@ export default function PredictionDetailView({ prediction, onBack, lang, user, o
     </div>
   );
 }
+

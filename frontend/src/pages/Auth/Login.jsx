@@ -48,7 +48,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
       
       {/* Circular Logo */}
       <div className="system-logo-wrap">
-        <img src="/logo.svg" alt="Bugesera Harvest Prediction System Logo" style={{ width: 84, height: 84, borderRadius: "50%", objectFit: "cover" }} onError={e => { e.target.src = '/logo.png'; }} />
+        <img src="/logo.svg" alt="Bugesera Harvest Prediction System Logo" style={{ width: 110, height: 110, borderRadius: "50%", objectFit: "cover" }} onError={e => { e.target.src = '/logo.png'; }} />
       </div>
 
       {/* Title and subtitle outside the card */}

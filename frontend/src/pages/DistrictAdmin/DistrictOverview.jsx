@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { API_BASE, CROP_BENCH, fmtDate } from '../../constants/constants';
 
-const CROP_COLORS = { Maize: '#f59e0b', Beans: '#22c55e', Rice: '#3b82f6' };
-const CROP_BG    = { Maize: '#fef3c7', Beans: '#dcfce7', Rice: '#dbeafe' };
-const CROP_TEXT  = { Maize: '#92400e', Beans: '#166534', Rice: '#1e40af' };
+const CROP_COLORS = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' };
+const CROP_BG    = { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' };
+const CROP_TEXT  = { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' };
 
 function perfStatus(val, crop) {
   const bench = CROP_BENCH[crop] || 20;
   const pct = ((val - bench) / bench) * 100;
-  if (pct >= 15)  return { label: 'Excellent', color: '#16a34a', bg: '#dcfce7', icon: 'bi-trophy-fill' };
-  if (pct >= 0)   return { label: 'Good',      color: '#0284c7', bg: '#dbeafe', icon: 'bi-check-circle-fill' };
+  if (pct >= 15)  return { label: 'Excellent', color: '#0d9488', bg: '#ccfbf1', icon: 'bi-trophy-fill' };
+  if (pct >= 0)   return { label: 'Good',      color: '#0d9488', bg: '#ccfbf1', icon: 'bi-check-circle-fill' };
   if (pct >= -15) return { label: 'Average',   color: '#d97706', bg: '#fef3c7', icon: 'bi-dash-circle-fill' };
   return           { label: 'Below Avg',        color: '#dc2626', bg: '#fee2e2', icon: 'bi-exclamation-triangle-fill' };
 }
@@ -108,8 +108,8 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
       {/* ── KPI Row ── */}
       <div className="so-kpi-grid" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
         {[
-          { icon: 'bi-houses-fill', color: '#dbeafe', iconColor: '#1d4ed8', val: 15, lbl: lang==='en'?'Total Sectors':'Imirenge Yose', action: lang==='en'?'Explore':'Sura', onAction: ()=>setTab('sectors') },
-          { icon: 'bi-people-fill', color: '#dcfce7', iconColor: '#16a34a', val: totalFarmers, lbl: lang==='en'?'Total Farmers':'Abahinzi Bose' },
+          { icon: 'bi-houses-fill', color: '#ccfbf1', iconColor: '#0d9488', val: 15, lbl: lang==='en'?'Total Sectors':'Imirenge Yose', action: lang==='en'?'Explore':'Sura', onAction: ()=>setTab('sectors') },
+          { icon: 'bi-people-fill', color: '#ccfbf1', iconColor: '#0d9488', val: totalFarmers, lbl: lang==='en'?'Total Farmers':'Abahinzi Bose' },
           { icon: 'bi-clipboard2-data-fill', color: '#fef3c7', iconColor: '#d97706', val: totalPreds, lbl: lang==='en'?'Total Predictions':'Ibisobanuro Byose' },
           { icon: 'bi-exclamation-triangle-fill', color: '#fee2e2', iconColor: '#dc2626', val: underperforming.length, lbl: lang==='en'?'Underperforming':'Abari Munsi', alert: underperforming.length > 0 },
         ].map((k,i) => (
@@ -317,7 +317,7 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <span style={{ fontSize:13, fontWeight:800, color:'var(--s600)', fontFamily:'monospace' }}>{val?.toFixed?.(1)||val} kg/are</span>
-                    <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:99, background: parseFloat(vs)>=0?'#dcfce7':'#fee2e2', color: parseFloat(vs)>=0?'#16a34a':'#dc2626' }}>
+                    <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:99, background: parseFloat(vs)>=0?'#ccfbf1':'#fee2e2', color: parseFloat(vs)>=0?'#0d9488':'#dc2626' }}>
                       {parseFloat(vs)>=0?'+':''}{vs}%
                     </span>
                   </div>
@@ -337,7 +337,7 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
             {underperforming.length > 0 && <span className="so-alert-badge">{underperforming.length}</span>}
           </div>
           {underperforming.length === 0 ? (
-            <div className="so-empty-mini" style={{ color:'#16a34a' }}>
+            <div className="so-empty-mini" style={{ color:'#0d9488' }}>
               <i className="bi bi-check-circle-fill"></i> {lang==='en'?'No underperforming farms detected':'Nta masambu afite ikibazo aboneka'}
             </div>
           ) : underperforming.slice(0,6).map((f,i) => (
@@ -389,3 +389,4 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
     </div>
   );
 }
+

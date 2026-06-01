@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { T, SECTORS, API_BASE, CROP_BENCH, fmtDate } from '../../constants/constants';
 import Sidebar from '../../components/Common/Sidebar';
 import Topbar from '../../components/Common/Topbar';
@@ -15,7 +15,9 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
   const [selectedFarmerId, setSelectedFarmerId] = useState(null);
   const [selectedPred, setSelectedPred] = useState(null);
   const [underperforming, setUnderperforming] = useState([]);
-  const [autoAdvice, setAutoAdvice] = useState(null); // { farmerId, msg }
+  const [autoAdvice, setAutoAdvice] = useState(null);
+  const [officerMessages, setOfficerMessages] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0); // { farmerId, msg }
 
   const sectorName = user.sector || "Nyamata";
   const sectorId = user.sector_id || (SECTORS.indexOf(sectorName) + 1);
@@ -43,9 +45,23 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
       .catch(() => setUnderperforming([]));
   };
 
+  const fetchOfficerMessages = () => {
+    const oid = user.id || user.officer_id;
+    fetch(`${API_BASE}/api/officer-notifications/${oid}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setOfficerMessages(d.messages || []);
+          setUnreadMessages(d.messages?.length || 0);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchDashboard();
     fetchUnderperforming();
+    fetchOfficerMessages();
   }, [sectorName]);
 
   const totalPreds = dashData?.total_predictions || dashData?.all_predictions?.length || dashData?.recent_preds?.length || 0;
@@ -62,7 +78,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
       <div className="so-kpi-grid">
         {[
           {
-            icon: 'bi-people-fill', color: '#dcfce7', iconColor: '#16a34a',
+            icon: 'bi-people-fill', color: '#ccfbf1', iconColor: '#0d9488',
             val: dashData?.farmer_count || 0, lbl: lang === 'en' ? 'Sector Farmers' : 'Abahinzi ba Segiteri',
             action: lang === 'en' ? 'View All' : 'Reba Bose', onAction: () => setTab('farmers')
           },
@@ -71,7 +87,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
             val: `${avgYield}`, unit: 'kg/are', lbl: lang === 'en' ? 'Avg Yield' : 'Umusaruro Hagati'
           },
           {
-            icon: 'bi-clipboard2-data-fill', color: '#e0f2fe', iconColor: '#0284c7',
+            icon: 'bi-clipboard2-data-fill', color: '#ccfbf1', iconColor: '#0d9488',
             val: totalPreds, lbl: lang === 'en' ? 'Total Predictions' : 'Ibisobanuro Byose',
             action: lang === 'en' ? 'View' : 'Reba', onAction: () => setTab('predictions')
           },
@@ -115,7 +131,7 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
                 const bench = CROP_BENCH[crop] || 20;
                 const pct = Math.min((val / 50) * 100, 100);
                 const vs = val ? ((val - bench) / bench * 100).toFixed(1) : 0;
-                const col = { Maize: '#f59e0b', Beans: '#22c55e', Rice: '#3b82f6' }[crop] || '#22c55e';
+                const col = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' }[crop] || '#2dd4bf';
                 return (
                   <div key={crop} className="so-crop-bar-row">
                     <div className="so-crop-bar-top">
@@ -282,15 +298,74 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
             lang={lang}
           />
         );
+      case 'messages':
+        return (
+          <div className="fade-up">
+            <div className="so-page-header" style={{ marginBottom: 20 }}>
+              <div>
+                <h2 className="so-page-title">
+                  <i className="bi bi-bell-fill"></i>
+                  {lang === 'en' ? 'Messages from District Admin' : 'Ubutumwa buvuye ku Karere'}
+                </h2>
+                <p className="so-page-sub">
+                  {lang === 'en' ? 'Advisory messages sent by the District Agricultural Officer' : 'Inama zoherejwe na Ofisiye w\'Ubuhinzi w\'Akarere'}
+                </p>
+              </div>
+            </div>
+            {officerMessages.length === 0 ? (
+              <div className="so-empty-state">
+                <i className="bi bi-bell-slash"></i>
+                <p>{lang === 'en' ? 'No messages from District Admin yet' : 'Nta butumwa buvuye ku Karere'}</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {officerMessages.map((msg, i) => (
+                  <div key={i} style={{
+                    background: 'white', borderRadius: 16, padding: '18px 20px',
+                    border: '1.5px solid #99f6e4', boxShadow: '0 4px 12px rgba(0,0,0,.04)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                      <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg,#0f3d38,#0d9488)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className="bi bi-building" style={{ color: 'white', fontSize: 16 }}></i>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
+                          {msg.sender_name || (lang === 'en' ? 'District Agri Officer' : 'Ofisiye w\'Akarere')}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                          <i className="bi bi-calendar3"></i> {msg.created_at ? new Date(msg.created_at).toLocaleDateString('en-RW', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                          &nbsp;·&nbsp;
+                          <span style={{ background: '#ccfbf1', color: '#0f766e', padding: '1px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700 }}>
+                            {msg.advice_type || 'advisory'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {msg.subject && (
+                      <div style={{ fontWeight: 800, fontSize: 14, color: '#0f3d38', marginBottom: 6 }}>
+                        {msg.subject}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.65, background: '#f8fafc', borderRadius: 10, padding: '12px 14px' }}>
+                      {msg.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
       default: return renderOverview();
     }
   };
 
   const navTabs = [
-    { key: 'overview', icon: 'bi-speedometer2', label: t.overview },
-    { key: 'farmers', icon: 'bi-people', label: lang === 'en' ? 'Farmers' : 'Abahinzi' },
-    { key: 'predictions', icon: 'bi-clipboard2-data', label: lang === 'en' ? 'Predictions' : 'Ibisobanuro' },
-    { key: 'reports', icon: 'bi-file-earmark-text', label: t.reportsTab },
+    { key: 'overview',     icon: 'bi-speedometer2',    label: t.overview },
+    { key: 'farmers',      icon: 'bi-people',           label: lang === 'en' ? 'Farmers' : 'Abahinzi' },
+    { key: 'predictions',  icon: 'bi-clipboard2-data',  label: lang === 'en' ? 'Predictions' : 'Ibisobanuro' },
+    { key: 'reports',      icon: 'bi-file-earmark-text',label: t.reportsTab },
+    { key: 'messages',     icon: 'bi-bell-fill',        label: lang === 'en' ? 'Messages' : 'Ubutumwa',
+      badge: unreadMessages > 0 ? unreadMessages : null },
   ];
 
   const isDetail = selectedPred || selectedFarmerId;
@@ -304,13 +379,14 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
         onLogout={onLogout}
         lang={lang}
         setLang={setLang}
+        unreadMessages={unreadMessages}
       />
       <div className="main-content">
         <div className="shell">
           <Topbar
             title={
               <div className="dash-header-clean">
-                <span className="dash-header-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                <span className="dash-header-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}>
                   <i className="bi bi-building"></i>
                 </span>
                 <div className="dash-header-text">
@@ -333,10 +409,10 @@ export default function SectorOfficerDashboard({ user, onLogout, lang, setLang }
           <div className="scroll fade-up">
             {/* Welcome Banner */}
             {!isDetail && (
-              <div className="so-welcome-banner">
+              <div className="so-welcome-banner" style={{ background: 'linear-gradient(135deg, #0f3d38 0%, #0d9488 100%)' }}>
                 <div className="so-welcome-left">
                   <div className="so-welcome-greeting">
-                    {t.welcome}, <span className="so-welcome-name">{user.name?.split(' ')[0] || 'Officer'}</span> 👋
+                    {t.welcome}, <span className="so-welcome-name">{user.name?.split(' ')[0] || 'Officer'}</span>
                   </div>
                   <div className="so-welcome-sub">
                     {lang === 'en'
@@ -400,8 +476,8 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
       return new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0);
     });
 
-  const gradeColor = (g) => ({ Excellent: '#16a34a', Good: '#0284c7', Average: '#d97706', 'Below Average': '#dc2626' }[g] || '#64748b');
-  const gradeBg = (g) => ({ Excellent: '#dcfce7', Good: '#e0f2fe', Average: '#fef3c7', 'Below Average': '#fee2e2' }[g] || '#f1f5f9');
+  const gradeColor = (g) => ({ Excellent: '#0d9488', Good: '#0d9488', Average: '#d97706', 'Below Average': '#dc2626' }[g] || '#64748b');
+  const gradeBg = (g) => ({ Excellent: '#ccfbf1', Good: '#ccfbf1', Average: '#fef3c7', 'Below Average': '#fee2e2' }[g] || '#f1f5f9');
 
   return (
     <div className="fade-up">
@@ -470,8 +546,8 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
                   </td>
                   <td>
                     <span className="so-crop-tag" style={{
-                      background: { Maize: '#fef3c7', Beans: '#dcfce7', Rice: '#e0f2fe' }[p.crop || p.crop_type] || '#f1f5f9',
-                      color: { Maize: '#92400e', Beans: '#166534', Rice: '#075985' }[p.crop || p.crop_type] || '#334155'
+                      background: { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' }[p.crop || p.crop_type] || '#f1f5f9',
+                      color: { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' }[p.crop || p.crop_type] || '#334155'
                     }}>
                       {p.crop || p.crop_type}
                     </span>
@@ -497,3 +573,4 @@ function SectorPredictionsList({ sectorName, sectorId, setSelectedPred, lang, da
     </div>
   );
 }
+

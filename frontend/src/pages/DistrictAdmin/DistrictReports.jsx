@@ -49,8 +49,8 @@ export default function DistrictReports({ user, lang }) {
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Report Configuration</div>
         {pdfStatus && (
           <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-            background: pdfStatus.type === 'ok' ? 'var(--g50)' : pdfStatus.type === 'err' ? '#fee2e2' : '#e0f2fe',
-            color:      pdfStatus.type === 'ok' ? 'var(--g800)' : pdfStatus.type === 'err' ? '#991b1b' : '#075985',
+            background: pdfStatus.type === 'ok' ? 'var(--g50)' : pdfStatus.type === 'err' ? '#fee2e2' : '#ccfbf1',
+            color:      pdfStatus.type === 'ok' ? 'var(--g800)' : pdfStatus.type === 'err' ? '#991b1b' : '#0f766e',
             border: `1px solid ${pdfStatus.type === 'ok' ? 'var(--g300)' : 'transparent'}` }}>
             {pdfStatus.msg}
           </div>

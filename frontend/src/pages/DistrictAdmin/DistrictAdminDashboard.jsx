@@ -102,7 +102,7 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
           <Topbar
             title={
               <div className="dash-header-clean">
-                <span className="dash-header-icon" style={{ background: '#dbeafe', color: '#1d4ed8' }}><i className="bi bi-buildings"></i></span>
+                <span className="dash-header-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}><i className="bi bi-buildings"></i></span>
                 <div className="dash-header-text">
                   <h1 className="dash-title">{lang === "en" ? "District Dashboard" : "Incumbane y'Akarere"}</h1>
                   <p className="dash-subtitle">Bugesera District · Rwanda</p>
@@ -116,10 +116,10 @@ export default function DistrictAdminDashboard({ user, onLogout, lang, setLang }
           <div className="scroll fade-up">
             {/* Welcome */}
             {!isDetail && (
-              <div className="modern-welcome-card" style={{ padding: "20px 28px", marginBottom: "24px", background: "linear-gradient(135deg, #1e3a8a 0%, #0369a1 100%)" }}>
+              <div className="modern-welcome-card" style={{ padding: "20px 28px", marginBottom: "24px", background: "linear-gradient(135deg, #0f3d38 0%, #0d9488 100%)" }}>
                 <div className="welcome-content">
                   <h2 className="welcome-greet" style={{ fontSize: "20px" }}>
-                    {t.welcome}, <span className="welcome-name" style={{ color: "#93c5fd" }}>{user.name?.split(" ")[0] || "Admin"}</span>! 👋
+                    {t.welcome}, <span className="welcome-name" style={{ color: "#5eead4" }}>{user.name?.split(" ")[0] || "Admin"}</span>!
                   </h2>
                   <p className="welcome-sub" style={{ marginBottom: 0, opacity: .8 }}>
                     {lang === "en" ? "Overseeing District-wide agriculture in" : "Gucunga ubuhinzi mu Karere ka"} <strong>Bugesera</strong>

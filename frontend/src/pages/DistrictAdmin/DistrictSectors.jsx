@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { API_BASE, SECTORS, CROP_BENCH, fmtDate } from '../../constants/constants';
 
-const CROP_COLORS = { Maize: '#f59e0b', Beans: '#22c55e', Rice: '#3b82f6' };
-const CROP_BG    = { Maize: '#fef3c7', Beans: '#dcfce7', Rice: '#dbeafe' };
-const CROP_TEXT  = { Maize: '#92400e', Beans: '#166534', Rice: '#1e40af' };
+const CROP_COLORS = { Maize: '#f59e0b', Beans: '#2dd4bf', Rice: '#0d9488' };
+const CROP_BG    = { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' };
+const CROP_TEXT  = { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' };
 
 function perfStatus(val, crop) {
   const bench = CROP_BENCH[crop] || 20;
   const pct = ((val - bench) / bench) * 100;
-  if (pct >= 15)  return { label: 'Excellent', color: '#16a34a', bg: '#dcfce7', icon: 'bi-trophy-fill' };
-  if (pct >= 0)   return { label: 'Good',      color: '#0284c7', bg: '#dbeafe', icon: 'bi-check-circle-fill' };
+  if (pct >= 15)  return { label: 'Excellent', color: '#0d9488', bg: '#ccfbf1', icon: 'bi-trophy-fill' };
+  if (pct >= 0)   return { label: 'Good',      color: '#0d9488', bg: '#ccfbf1', icon: 'bi-check-circle-fill' };
   if (pct >= -15) return { label: 'Average',   color: '#d97706', bg: '#fef3c7', icon: 'bi-dash-circle-fill' };
   return           { label: 'Below Avg',        color: '#dc2626', bg: '#fee2e2', icon: 'bi-exclamation-triangle-fill' };
 }
@@ -168,7 +168,7 @@ function SectorDetailView({ sectorId, onBack, lang }) {
                   <div className="da-crop-stat-lbl">kg/are avg</div>
                 </div>
                 <div className="da-crop-stat">
-                  <div className="da-crop-stat-val" style={{ color: parseFloat(vs) >= 0 ? '#16a34a' : '#dc2626' }}>
+                  <div className="da-crop-stat-val" style={{ color: parseFloat(vs) >= 0 ? '#0d9488' : '#dc2626' }}>
                     {parseFloat(vs) >= 0 ? '+' : ''}{vs}%
                   </div>
                   <div className="da-crop-stat-lbl">vs district</div>
@@ -237,8 +237,8 @@ function SectorDetailView({ sectorId, onBack, lang }) {
                 {filtered.map((p, i) => {
                   const crop = p.crop_type || p.crop;
                   const grade = p.yield_grade;
-                  const gradeColor = { Excellent:'#16a34a', Good:'#0284c7', Average:'#d97706', 'Below Average':'#dc2626' }[grade] || '#64748b';
-                  const gradeBg   = { Excellent:'#dcfce7', Good:'#dbeafe', Average:'#fef3c7', 'Below Average':'#fee2e2' }[grade] || '#f1f5f9';
+                  const gradeColor = { Excellent:'#0d9488', Good:'#0d9488', Average:'#d97706', 'Below Average':'#dc2626' }[grade] || '#64748b';
+                  const gradeBg   = { Excellent:'#ccfbf1', Good:'#ccfbf1', Average:'#fef3c7', 'Below Average':'#fee2e2' }[grade] || '#f1f5f9';
                   return (
                     <tr key={i} className="da-perf-tr">
                       <td className="da-pred-count">{i + 1}</td>
@@ -263,3 +263,4 @@ function SectorDetailView({ sectorId, onBack, lang }) {
     </div>
   );
 }
+

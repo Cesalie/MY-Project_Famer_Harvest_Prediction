@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { T, API_BASE, fmtDate, CROP_BENCH } from '../../constants/constants';
 
 export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setSelectedPred, officer, autoAdvice, onAdviceUsed }) {
@@ -68,8 +68,8 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
     ? (displayedPreds.reduce((s, p) => s + parseFloat(p.yield_per_are_kg || 0), 0) / displayedPreds.length).toFixed(1)
     : '—';
 
-  const gradeColor = (g) => ({ Excellent: '#16a34a', Good: '#0284c7', Average: '#d97706', 'Below Average': '#dc2626' }[g] || '#64748b');
-  const gradeBg = (g) => ({ Excellent: '#dcfce7', Good: '#e0f2fe', Average: '#fef3c7', 'Below Average': '#fee2e2' }[g] || '#f1f5f9');
+  const gradeColor = (g) => ({ Excellent: '#0d9488', Good: '#0d9488', Average: '#d97706', 'Below Average': '#dc2626' }[g] || '#64748b');
+  const gradeBg = (g) => ({ Excellent: '#ccfbf1', Good: '#ccfbf1', Average: '#fef3c7', 'Below Average': '#fee2e2' }[g] || '#f1f5f9');
 
   const handleSendAdvice = async () => {
     if (!adviceMsg.trim()) return;
@@ -137,8 +137,8 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
       {/* Stats Row */}
       <div className="so-farmer-stats-row">
         {[
-          { icon: 'bi-clipboard2-data', val: preds.length, lbl: lang === 'en' ? 'Predictions' : 'Ibisobanuro', color: '#0284c7', bg: '#e0f2fe' },
-          { icon: 'bi-graph-up', val: avgYield, unit: 'kg/are', lbl: lang === 'en' ? 'Avg Yield' : 'Umusaruro Hagati', color: '#16a34a', bg: '#dcfce7' },
+          { icon: 'bi-clipboard2-data', val: preds.length, lbl: lang === 'en' ? 'Predictions' : 'Ibisobanuro', color: '#0d9488', bg: '#ccfbf1' },
+          { icon: 'bi-graph-up', val: avgYield, unit: 'kg/are', lbl: lang === 'en' ? 'Avg Yield' : 'Umusaruro Hagati', color: '#0d9488', bg: '#ccfbf1' },
           { icon: 'bi-rulers', val: `${f.farm_size_are || 0}`, unit: 'are', lbl: lang === 'en' ? 'Farm Size' : 'Ubuso', color: '#d97706', bg: '#fef3c7' },
           { icon: 'bi-calendar-check', val: f.created_at ? new Date(f.created_at).getFullYear() : '—', lbl: lang === 'en' ? 'Registered' : 'Yiyandikishije', color: '#7c3aed', bg: '#ede9fe' },
         ].map((s, i) => (
@@ -241,8 +241,8 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
                       <tr key={i} className="so-pred-tr" onClick={() => setSelectedPred && setSelectedPred(p)}>
                         <td>
                           <span className="so-crop-tag" style={{
-                            background: { Maize: '#fef3c7', Beans: '#dcfce7', Rice: '#e0f2fe' }[p.crop_type || p.crop] || '#f1f5f9',
-                            color: { Maize: '#92400e', Beans: '#166534', Rice: '#075985' }[p.crop_type || p.crop] || '#334155'
+                            background: { Maize: '#fef3c7', Beans: '#ccfbf1', Rice: '#ccfbf1' }[p.crop_type || p.crop] || '#f1f5f9',
+                            color: { Maize: '#92400e', Beans: '#0f766e', Rice: '#0f766e' }[p.crop_type || p.crop] || '#334155'
                           }}>
                             {p.crop_type || p.crop}
                           </span>
@@ -416,3 +416,4 @@ export default function FarmerDetailView({ farmerId, onBack, lang, setLang, setS
     </div>
   );
 }
+

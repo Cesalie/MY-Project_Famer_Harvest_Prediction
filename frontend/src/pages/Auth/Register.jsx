@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { T, SECTORS, API_BASE } from '../../constants/constants';
 
 export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
@@ -177,30 +177,30 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
         )}
         {success && (
           <div style={{
-            background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-            border: '2px solid #22c55e',
+            background: 'linear-gradient(135deg, #f0fdfa, #ccfbf1)',
+            border: '2px solid #2dd4bf',
             borderRadius: 14,
             padding: '24px',
             marginBottom: 20,
           }}>
             {/* Title with Icon */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <div style={{ width: 48, height: 48, background: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 48, height: 48, background: '#0d9488', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <i className="bi bi-check-circle-fill" style={{ color: 'white', fontSize: 28 }}></i>
               </div>
               <div>
-                <div style={{ fontWeight: 900, fontSize: 18, color: '#14532d', margin: 0 }}>
+                <div style={{ fontWeight: 900, fontSize: 18, color: '#0f3d38', margin: 0 }}>
                   {lang === 'rw' ? 'Konti Yafunguwe Neza! 🎉' : 'Account Created Successfully! 🎉'}
                 </div>
-                <div style={{ fontSize: 13, color: '#166534', margin: 0, fontWeight: 500 }}>
+                <div style={{ fontSize: 13, color: '#0f766e', margin: 0, fontWeight: 500 }}>
                   {lang === 'rw' ? 'Murakaza neza muri sisitemu yacu!' : 'Welcome to our system!'}
                 </div>
               </div>
             </div>
 
             {/* Email Highlight Box */}
-            <div style={{ background: 'white', border: '2px solid #86efac', borderRadius: 12, padding: '16px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <i className="bi bi-envelope-check-fill" style={{ color: '#16a34a', fontSize: 24, flexShrink: 0 }}></i>
+            <div style={{ background: 'white', border: '2px solid #5eead4', borderRadius: 12, padding: '16px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <i className="bi bi-envelope-check-fill" style={{ color: '#0d9488', fontSize: 24, flexShrink: 0 }}></i>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>
                   {lang === 'rw' ? 'Amakuru yo kwinjira asohotseye kuri' : 'Login credentials sent to'}
@@ -212,27 +212,27 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
             </div>
 
             {/* Step-by-step Instructions */}
-            <div style={{ background: 'rgba(22, 163, 74, 0.05)', borderRadius: 12, padding: '16px', marginBottom: 18, borderLeft: '4px solid #16a34a' }}>
-              <div style={{ fontWeight: 700, fontSize: 13, color: '#14532d', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'rgba(22, 163, 74, 0.05)', borderRadius: 12, padding: '16px', marginBottom: 18, borderLeft: '4px solid #0d9488' }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#0f3d38', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <i className="bi bi-list-check" style={{ fontSize: 18 }}></i>
                 {lang === 'rw' ? 'Ingero z\'inyongera' : 'Next Steps'}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 28, height: 28, background: '#16a34a', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>1</div>
-                  <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.5, flex: 1 }}>
+                  <div style={{ width: 28, height: 28, background: '#0d9488', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>1</div>
+                  <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
                     {lang === 'rw' ? 'Reba email yawe (ibiri n\'inyandiko y\'akorante)' : 'Check your email for your login credentials'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 28, height: 28, background: '#16a34a', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>2</div>
-                  <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.5, flex: 1 }}>
+                  <div style={{ width: 28, height: 28, background: '#0d9488', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>2</div>
+                  <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
                     {lang === 'rw' ? 'Niba email itaboneka, reba spam/junk folder' : 'If you don\'t see it, check your spam/junk folder'}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 28, height: 28, background: '#16a34a', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>3</div>
-                  <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.5, flex: 1 }}>
+                  <div style={{ width: 28, height: 28, background: '#0d9488', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0, fontSize: 14 }}>3</div>
+                  <div style={{ fontSize: 13, color: '#0f766e', lineHeight: 1.5, flex: 1 }}>
                     {lang === 'rw' ? 'Koresha email n\'ijambo ry\'ibanga kugirango winjire' : 'Use your email and password to log in'}
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
           <button
             className="auth-btn"
             onClick={() => { onLogin(); resetForm(); }}
-            style={{ background: '#16a34a', border: 'none' }}
+            style={{ background: 'linear-gradient(135deg,#0f3d38,#0d9488)', border: 'none' }}
           >
             <i className="bi bi-box-arrow-in-right" style={{ marginRight: 8 }}></i>
             {lang === "en" ? "Go to Login" : "Komeza ku kwinjira"}
@@ -373,3 +373,4 @@ export default function Register({ lang, setLang, onLogin, onBack, isModal }) {
     </div>
   );
 }
+

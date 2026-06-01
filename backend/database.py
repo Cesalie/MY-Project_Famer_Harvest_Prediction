@@ -749,28 +749,71 @@ def get_sector_dashboard(sector_name: str) -> dict:
             }
 
 def get_underperforming_farms(sector_id: int = None) -> list:
+    """
+    Returns farms where the PREDICTED yield is below 80% of the crop benchmark.
+    Does NOT require actual_yield_kg_are — works on predictions alone.
+    Benchmarks: Maize=17.01, Beans=9.70, Rice=25.60 kg/are
+    """
     with get_db() as conn:
         with conn.cursor() as cur:
             query = """
-                SELECT f.farmer_id as id, f.full_name as name, s.sector_name,
-                       p.crop_type, p.yield_per_are_kg as predicted, 
+                SELECT f.farmer_id, f.full_name as name, s.sector_name,
+                       p.crop_type,
+                       p.yield_per_are_kg as predicted,
                        p.actual_yield_kg_are as actual,
-                       ROUND(p.yield_per_are_kg - p.actual_yield_kg_are, 2) as gap,
-                       ROUND((p.yield_per_are_kg - p.actual_yield_kg_are)/p.yield_per_are_kg * 100, 1) as gap_pct
+                       ROUND(
+                           CASE p.crop_type
+                               WHEN 'Maize' THEN 17.01
+                               WHEN 'Beans' THEN 9.70
+                               WHEN 'Rice'  THEN 25.60
+                               ELSE 17.01
+                           END, 2
+                       ) as benchmark,
+                       ROUND(
+                           (1 - p.yield_per_are_kg / 
+                               CASE p.crop_type
+                                   WHEN 'Maize' THEN 17.01
+                                   WHEN 'Beans' THEN 9.70
+                                   WHEN 'Rice'  THEN 25.60
+                                   ELSE 17.01
+                               END
+                           ) * 100, 1
+                       ) as gap_pct
                 FROM predictions p
                 JOIN farmers f ON p.farmer_id = f.farmer_id
                 JOIN sectors s ON p.sector_id = s.sector_id
-                WHERE p.actual_yield_kg_are IS NOT NULL 
-                  AND p.actual_yield_kg_are < p.yield_per_are_kg * 0.8
+                WHERE p.yield_per_are_kg < (
+                    CASE p.crop_type
+                        WHEN 'Maize' THEN 17.01 * 0.80
+                        WHEN 'Beans' THEN 9.70  * 0.80
+                        WHEN 'Rice'  THEN 25.60 * 0.80
+                        ELSE 17.01 * 0.80
+                    END
+                )
+                AND p.yield_per_are_kg IS NOT NULL
             """
             params = []
             if sector_id:
                 query += " AND p.sector_id = %s"
                 params.append(sector_id)
-            
-            query += " ORDER BY gap DESC LIMIT 20"
+
+            # Latest prediction per farmer only
+            query = f"""
+                SELECT t.farmer_id as id, t.name, t.sector_name, t.crop_type,
+                       t.predicted, t.actual, t.benchmark, t.gap_pct
+                FROM ({query}) t
+                ORDER BY t.gap_pct DESC
+                LIMIT 20
+            """
             cur.execute(query, tuple(params))
-            return cur.fetchall()
+            rows = cur.fetchall()
+            result = []
+            for r in rows:
+                d = {}
+                for k, v in r.items():
+                    d[k] = float(v) if hasattr(v, '__float__') and not isinstance(v, str) else v
+                result.append(d)
+            return result
 
 def get_sector(sector_name: str) -> dict | None:
     with get_db() as conn:

@@ -2127,6 +2127,38 @@ def reset_password():
 
 
 
+@app.route('/api/officer-notifications/<officer_id>', methods=['GET'])
+def get_officer_notifications(officer_id):
+    """Get messages sent to a sector officer from district admin."""
+    if not DB_ENABLED:
+        return jsonify({'success': False, 'messages': []}), 200
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT a.advice_id, a.subject, a.message, a.advice_type,
+                           a.created_at, a.is_deleted,
+                           o.full_name as sender_name, o.officer_type as sender_type
+                    FROM officer_advice a
+                    JOIN officers o ON a.officer_id = o.officer_id
+                    WHERE a.recipient_officer_id = %s
+                      AND (a.is_deleted IS NULL OR a.is_deleted = 0)
+                    ORDER BY a.created_at DESC
+                    LIMIT 20
+                """, (officer_id,))
+                rows = cur.fetchall()
+                clean = []
+                for r in rows:
+                    d = {}
+                    for k, v in r.items():
+                        d[k] = v.isoformat() if hasattr(v, 'isoformat') else v
+                    clean.append(d)
+                return jsonify({'success': True, 'messages': clean})
+    except Exception as e:
+        print(f"Officer notifications error: {e}")
+        return jsonify({'success': False, 'messages': [], 'error': str(e)}), 500
+
+
 @app.route('/api/send-advice', methods=['POST'])
 def send_advice_route():
     if not DB_ENABLED:
