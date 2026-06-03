@@ -748,6 +748,25 @@ def get_sector_dashboard(sector_name: str) -> dict:
                 'seasons': list(seasons),
             }
 
+def get_all_predictions_flat() -> list:
+    """Return all predictions with crop_type and yield for confusion matrix."""
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT prediction_id, crop_type, yield_per_are_kg,
+                           sector_id, created_at
+                    FROM predictions
+                    WHERE yield_per_are_kg IS NOT NULL
+                    ORDER BY created_at DESC
+                    LIMIT 5000
+                """)
+                rows = cur.fetchall()
+                return [dict(r) for r in rows]
+    except Exception as e:
+        print(f"get_all_predictions_flat error: {e}")
+        return []
+
 def get_underperforming_farms(sector_id: int = None) -> list:
     """
     Returns farms where the PREDICTED yield is below 80% of the crop benchmark.

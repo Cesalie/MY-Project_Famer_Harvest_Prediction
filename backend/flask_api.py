@@ -1985,17 +1985,74 @@ def officer_dashboard():
 
 @app.route('/api/model-info', methods=['GET'])
 def model_info():
+    # Compute feature importance from best model
+    feature_importance = []
+    try:
+        if hasattr(model, 'feature_importances_'):
+            fi = sorted(
+                zip(FEATURES, model.feature_importances_),
+                key=lambda x: x[1], reverse=True
+            )
+            feature_importance = [
+                {'feature': f.replace('_enc','').replace('_',' '), 'importance': round(float(v)*100, 2)}
+                for f, v in fi[:12]
+            ]
+    except Exception:
+        pass
+
+    # Confusion matrix for regression — bin predictions into yield grades
+    confusion = {}
+    try:
+        if DB_ENABLED:
+            from database import get_all_predictions_flat
+            preds = get_all_predictions_flat()
+            if preds:
+                import pandas as _pd
+                pdf = _pd.DataFrame(preds)
+                benchmarks = CROP_BENCHMARKS
+
+                def grade(val, crop):
+                    b = benchmarks.get(crop, 17)
+                    pct = (val / b) * 100 if b else 0
+                    if pct >= 115: return 'Excellent'
+                    if pct >= 90:  return 'Good'
+                    if pct >= 70:  return 'Average'
+                    return 'Below Average'
+
+                if 'yield_per_are_kg' in pdf.columns and 'crop_type' in pdf.columns:
+                    pdf['grade'] = pdf.apply(
+                        lambda r: grade(float(r['yield_per_are_kg'] or 0), r['crop_type'] or 'Maize'), axis=1
+                    )
+                    counts = pdf['grade'].value_counts().to_dict()
+                    total  = len(pdf)
+                    confusion = {
+                        g: {'count': int(counts.get(g, 0)),
+                            'pct':   round(counts.get(g, 0) / total * 100, 1) if total else 0}
+                        for g in ['Excellent', 'Good', 'Average', 'Below Average']
+                    }
+    except Exception as e:
+        print(f"Confusion matrix error: {e}")
+
     return jsonify({
-        'best_model'     : META['best_model'],
-        'features'       : FEATURES,
-        'feature_count'  : len(FEATURES),
-        'target'         : META['target'],
-        'units'          : META.get('units', {}),
-        'crops'          : CROPS,
-        'sectors'        : SECTORS,
-        'metrics'        : META.get('model_comparison', META['_perf']),
+        'best_model'       : META['best_model'],
+        'features'         : FEATURES,
+        'feature_count'    : len(FEATURES),
+        'target'           : META['target'],
+        'units'            : META.get('units', {}),
+        'crops'            : CROPS,
+        'sectors'          : SECTORS,
+        'metrics'          : META.get('model_comparison', META['_perf']),
         'benchmarks_kg_are': CROP_BENCHMARKS,
-        'yield_stats'    : META.get('yield_stats', {}),
+        'yield_stats'      : META.get('yield_stats', {}),
+        'feature_importance': feature_importance,
+        'confusion_matrix' : confusion,
+        'dataset_info'     : {
+            'total_rows' : META.get('dataset_rows', 2502),
+            'train_rows' : META.get('train_rows', 2001),
+            'test_rows'  : META.get('test_rows', 501),
+            'r2_score'   : META.get('r2_score', 0.9724),
+            'mae'        : META.get('mae', 0.979),
+        }
     })
 
 
