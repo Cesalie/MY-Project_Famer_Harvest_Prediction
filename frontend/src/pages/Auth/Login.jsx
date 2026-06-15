@@ -135,7 +135,7 @@ export default function Login({ onLogin, lang, setLang, onRegister, onForgot, on
           </span>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--s200)", fontSize: 11, color: "var(--s500)", fontWeight: 500 }}>
+        <div style={{ textAlign: "center", marginTop: 24, paddingTop: 16, fontSize: 11, color: "var(--s500)", fontWeight: 500 }}>
           🌾 {lang === "rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural System"} · Rwanda Polytechnic
         </div>
       </div>

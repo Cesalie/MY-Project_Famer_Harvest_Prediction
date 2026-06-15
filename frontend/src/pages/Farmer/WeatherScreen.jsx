@@ -206,7 +206,7 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
         <div className="sec-hd"><i className="bi bi-bar-chart-line"></i> {t.monthlyRainfall}</div>
         <div className="card" style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, color: 'var(--s500)', marginBottom: 10 }}>
-            {lang === 'en' ? 'Bugesera District — Historical monthly averages (mm)' : 'Akarere ka Bugesera — Impuzandengo y\'imvura buri kwezi (mm)'}
+            {lang === 'en' ? 'Bugesera District - Historical monthly averages (mm)' : 'Akarere ka Bugesera - Impuzandengo y\'imvura buri kwezi (mm)'}
           </div>
           {monthly.map(d => (
             <div key={d.m} className="bar-row">
@@ -239,8 +239,8 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
             <i className="bi bi-flower2"></i> {t.plantingCalendar}
           </div>
           {[
-            { title: lang==='en'?'Season A (Oct–Jan)':'Igihe A (Ukwakira–Mutarama)', desc: lang==='en'?'Maize, Rice — main season, +10% yields':'Ibigori, Umuceri — igihe gikomeye, umusaruro +10%' },
-            { title: lang==='en'?'Season B (Mar–Jul)':'Igihe B (Werurwe–Nyakanga)',  desc: lang==='en'?'Beans, Vegetables — secondary season':'Ibishyimbo, Imboga — igihe gito' },
+            { title: lang==='en'?'Season A (Oct-Jan)':'Igihe A (Ukwakira-Mutarama)', desc: lang==='en'?'Maize, Rice: main season, +10% yields':'Ibigori, Umuceri: igihe gikomeye, umusaruro +10%' },
+            { title: lang==='en'?'Season B (Mar-Jul)':'Igihe B (Werurwe-Nyakanga)',  desc: lang==='en'?'Beans, Vegetables: secondary season':'Ibishyimbo, Imboga: igihe gito' },
             { title: lang==='en'?'Best planting time':'Igihe cyiza cyo gutera',       desc: lang==='en'?'Oct–Nov (Season A) · Mar–Apr (Season B)':'Ukwakira–Ugushyingo (A) · Werurwe–Mata (B)' },
           ].map(({ title, desc }) => (
             <div key={title} style={{ padding: '8px 0', borderBottom: '1px solid #99f6e4' }}>

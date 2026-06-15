@@ -81,8 +81,8 @@ export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister
           </h1>
           <p style={{ fontSize: 16, opacity: 0.88, lineHeight: 1.7, maxWidth: 580, margin: "0 auto 36px" }}>
             {lang === "en"
-              ? "Bugesera District's official ML-powered harvest prediction portal. Get accurate yield forecasts, climate analysis, and expert recommendations — all in one place."
-              : "Urubuga rw'akarere ka Bugesera rugufasha guteganya umusaruro w'imyaka ukoresheje ML. Bona igereranya ry'umusaruro, isuzuma ry'ibihe, n'inama z'inzobere — byose ahantu hamwe."}
+              ? "Bugesera District's official ML-powered harvest prediction portal. Get accurate yield forecasts, climate analysis, and expert recommendations, all in one place."
+              : "Urubuga rw'akarere ka Bugesera rugufasha guteganya umusaruro w'imyaka ukoresheje ML. Bona igereranya ry'umusaruro, isuzuma ry'ibihe, n'inama z'inzobere, byose ahantu hamwe."}
           </p>
           <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
             <button onClick={onOpenRegister} style={{
@@ -104,7 +104,7 @@ export default function WelcomePage({ lang, setLang, onOpenLogin, onOpenRegister
           <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 48, flexWrap: "wrap" }}>
             {[
               { val: "15",              lbl: lang === "en" ? "Sectors Covered" : "Imirenge" },
-              { val: modelAccuracy ? `${modelAccuracy}%` : "…", lbl: lang === "en" ? "Model Accuracy" : "Ubushobozi bwa ML" },
+              { val: modelAccuracy ? `${modelAccuracy}%` : "…", lbl: lang === "en" ? "Prediction Reliability" : "Urwego rwo Kwizera" },
               { val: "3",              lbl: lang === "en" ? "Crop Types" : "Ubwoko bw'Ibihingwa" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center" }}>

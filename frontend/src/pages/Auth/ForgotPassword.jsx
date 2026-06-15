@@ -213,7 +213,7 @@ export default function ForgotPassword({ lang, setLang, onBack, isModal }) {
           </span>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--s200)", fontSize: 11, color: "var(--s500)", fontWeight: 500 }}>
+        <div style={{ textAlign: "center", marginTop: 24, paddingTop: 16, fontSize: 11, color: "var(--s500)", fontWeight: 500 }}>
           🌾 {lang === "rw" ? "Urunyobwe rw'Ubuhinzi bwa Bugesera" : "Bugesera Agricultural System"} · Rwanda Polytechnic
         </div>
       </div>

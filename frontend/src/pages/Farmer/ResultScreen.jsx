@@ -134,10 +134,28 @@ export default function ResultScreen({ result, onNavigate, onSave, history = [],
               <div className="result-meta-lbl" style={{ fontSize: 10, opacity: 0.8 }}>{t.confidence}</div>
             </div>
             <div className="result-meta-item">
-              <div className="result-meta-val" style={{ fontWeight: 800 }}>{result.model_used?.split(" ")[0] || "ML"}</div>
-              <div className="result-meta-lbl" style={{ fontSize: 10, opacity: 0.8 }}>{t.modelUsed}</div>
+              <div className="result-meta-val" style={{ fontWeight: 800, fontSize: 12 }}>
+                {result.model_used || "Gradient Boosting"}
+              </div>
+              <div className="result-meta-lbl" style={{ fontSize: 10, opacity: 0.8 }}>
+                {lang === "en" ? "Analysis Method" : "Uburyo Bwakoreshejwe"}
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Powered-by badge */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          background: 'rgba(255,255,255,0.08)', borderRadius: 99,
+          padding: '5px 14px', marginBottom: 4, marginTop: -8
+        }}>
+          <i className="bi bi-cpu" style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}></i>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>
+            {lang === 'en'
+              ? `Powered by ${result.model_used || 'Gradient Boosting'} · Based on 2,502 Bugesera farm records`
+              : `Bikoresheje ${result.model_used || 'Gradient Boosting'} · Bishingiye ku masambu 2,502 ya Bugesera`}
+          </span>
         </div>
 
         {/* Key Metrics */}

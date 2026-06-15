@@ -24,13 +24,15 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
   const [loadingSentAdvice, setLoadingSentAdvice] = useState(false);
   const [selectedSectors, setSelectedSectors] = useState([]);
   const [cropFilter, setCropFilter]     = useState('All');
-  const [modelInfo, setModelInfo]       = useState(null);
+  const [modelInfo, setModelInfo] = useState(null);
+  const [modelInfoLoading, setModelInfoLoading] = useState(true);
 
   useEffect(() => {
+    setModelInfoLoading(true);
     fetch(`${API_BASE}/api/model-info`)
       .then(r => r.json())
-      .then(d => setModelInfo(d))
-      .catch(() => {});
+      .then(d => { setModelInfo(d); setModelInfoLoading(false); })
+      .catch(() => setModelInfoLoading(false));
   }, []);
 
   const totalPreds = dashData?.summary?.total_predictions ?? dashData?.total_predictions ?? 0;
@@ -484,41 +486,84 @@ export default function DistrictOverview({ dashData, loading, underperforming, s
             </div>
           </div>
 
-          {/* Feature Importance */}
+          {/* Feature Importance Bar Chart */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--s600)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>
-              <i className="bi bi-bar-chart-steps"></i> {lang==='en'?'Top Feature Importance':'Ingaruka z\'Ibintu Bikomeye'}
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--s600)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 14 }}>
+              <i className="bi bi-bar-chart-fill"></i> {lang==='en' ? 'Top Feature Importance — Gradient Boosting' : 'Ingaruka Nyamukuru — Gradient Boosting'}
             </div>
-            {(modelInfo?.feature_importance || [
-              { feature: 'Crop Type', importance: 38.2 },
-              { feature: 'Seed Variety', importance: 18.5 },
-              { feature: 'Fert Kg Are', importance: 12.1 },
-              { feature: 'Terrain Type', importance: 8.4 },
-              { feature: 'Total Rainfall mm', importance: 6.9 },
-              { feature: 'Season A', importance: 5.2 },
-              { feature: 'Pest Pressure', importance: 3.8 },
-              { feature: 'Area Planted Are', importance: 2.9 },
-            ]).slice(0, 8).map((f, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--s700)', textTransform: 'capitalize' }}>
-                    {f.feature}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: '#0d9488', fontFamily: 'monospace' }}>{f.importance}%</span>
-                </div>
-                <div style={{ height: 8, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{
-                    height: 8, borderRadius: 99, transition: 'width 0.8s ease',
-                    width: `${Math.min(f.importance * 2.5, 100)}%`,
-                    background: `linear-gradient(90deg, #0f3d38, #0d9488)`,
-                    opacity: 1 - i * 0.08,
-                  }}></div>
-                </div>
+
+            {/* Chart header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid #f1f5f9' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                {lang==='en' ? 'Input Factor' : 'Ibizingira'}
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                {lang==='en' ? 'Impact on Yield' : 'Ingaruka ku Musaruro'}
+              </span>
+            </div>
+
+            {/* Loading state */}
+            {modelInfoLoading ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: 12 }}>
+                <i className="bi bi-arrow-repeat spin"></i> {lang==='en' ? 'Loading from model…' : 'Gufata amakuru ya model…'}
               </div>
-            ))}
-            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 8 }}>
-              <i className="bi bi-info-circle"></i> {lang==='en'?'Gradient Boosting feature importances':'Ingaruka za features za Gradient Boosting'}
-            </div>
+            ) : !modelInfo?.feature_importance?.length ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: 12 }}>
+                <i className="bi bi-exclamation-circle"></i> {lang==='en' ? 'No feature data available' : 'Nta makuru ya features'}
+              </div>
+            ) : (
+              <>
+                {modelInfo.feature_importance.slice(0, 10).map((f, i) => {
+                  const maxImp = modelInfo.feature_importance[0]?.importance || 100;
+                  const barPct = (f.importance / maxImp) * 100;
+                  const colors = ['#0f3d38','#0d9488','#1a6b62','#2dd4bf','#d97706','#f59e0b','#0d9488','#5eead4','#0f766e','#99f6e4'];
+                  const c = colors[i % colors.length];
+                  return (
+                    <div key={i} style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 2, background: c, flexShrink: 0 }}></div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', textTransform: 'capitalize' }}>{f.feature}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{
+                            fontSize: 12, fontWeight: 900, color: c,
+                            fontFamily: 'JetBrains Mono, monospace', minWidth: 42, textAlign: 'right'
+                          }}>{f.importance}%</span>
+                          {i === 0 && (
+                            <span style={{ background: '#ccfbf1', color: '#0f766e', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99 }}>
+                              #1
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ height: 14, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{
+                          height: 14, borderRadius: 4,
+                          width: `${barPct}%`,
+                          background: `linear-gradient(90deg, ${c}cc, ${c})`,
+                          transition: 'width 1s ease',
+                          position: 'relative',
+                          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6
+                        }}>
+                          {barPct > 22 && (
+                            <span style={{ fontSize: 9, fontWeight: 800, color: 'white' }}>{f.importance}%</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ marginTop: 12, padding: '8px 12px', background: '#f0fdfa', borderRadius: 8, border: '1px solid #99f6e4' }}>
+                  <div style={{ fontSize: 10, color: '#0f766e', fontWeight: 600, lineHeight: 1.5 }}>
+                    <i className="bi bi-info-circle-fill"></i>{' '}
+                    {lang==='en'
+                      ? 'Real feature importances extracted directly from the trained Gradient Boosting model. Higher % = stronger impact on yield prediction.'
+                      : 'Ingaruka nyacyo zavuye muri model ya Gradient Boosting yatrenijwe. % nini = ingaruka nini ku guteganwa kw\'umusaruro.'}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
