@@ -40,3 +40,15 @@ ENV/
 # Backup folders
 frontend-archive/
 
+# Sensitive files — do not commit
+backend/credentials.json
+backend/token.json
+backend/reg_payload.json
+
+# Large media files
+*.mp4
+*.zip
+
+# Test scripts
+test_*.py
+simple_register.py

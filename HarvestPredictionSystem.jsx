@@ -669,7 +669,7 @@ function DashboardScreen({user,onNavigate,history,lang,setLang}) {
           <div style={{fontSize:20,fontWeight:800}}>{t.welcome}, {user.name.split(" ")[0]}! 👋</div>
           <div style={{fontSize:12,opacity:.8,marginTop:3,fontFamily:"JetBrains Mono,monospace"}}>{t.farmerId}: {user.id}</div>
           <div style={{display:"flex",gap:20,marginTop:16,paddingTop:14,borderTop:"1px solid rgba(255,255,255,.2)",flexWrap:"wrap"}}>
-            {[[`${farmHa}ha`,t.totalFarmSize],[history.length,t.predictions],["84.8%",t.accuracy],[user.sector,"Sector"]].map(([v,l])=>(
+            {[[`${farmHa}ha`,t.totalFarmSize],[history.length,t.predictions],["–",t.accuracy],[user.sector,"Sector"]].map(([v,l])=>(
               <div key={l} style={{textAlign:"center"}}>
                 <div style={{fontWeight:800,fontSize:18}}>{v}</div>
                 <div style={{fontSize:10,opacity:.75,textTransform:"uppercase",letterSpacing:".5px"}}>{l}</div>
@@ -828,7 +828,7 @@ function PredictScreen({user,onNavigate,onResult,lang,setLang}) {
         yield_per_ha_kg  : Math.round(yieldPA*100*10)/10,
         total_yield_kg   : Math.round(yieldPA*areaAre*10)/10,
         yield_range      : `${Math.round(yieldPA*0.92*10)/10}–${Math.round(yieldPA*1.08*10)/10} kg/are`,
-        confidence_pct   : 84.8,
+        confidence_pct   : null,
         model_used       : "Local Simulation (API offline)",
         district_avg_kg_are: CROP_BENCH[form.crop]||20,
         inputs           : {temperature:clim.temperature,rainfall:clim.rainfall,
@@ -1048,7 +1048,7 @@ function ResultScreen({result,onNavigate,onSave,lang,setLang}) {
               <div className="result-meta-lbl">{t.total} ({result.area_planted_are||result.farm_size_are}a)</div>
             </div>
             <div className="result-meta-item">
-              <div className="result-meta-val">{result.confidence_pct}%</div>
+              <div className="result-meta-val">{result.confidence_pct ? `${result.confidence_pct}%` : '…'}</div>
               <div className="result-meta-lbl">{t.confidence}</div>
             </div>
             <div className="result-meta-item">
@@ -1168,7 +1168,7 @@ function HistoryScreen({predictions,onNavigate,lang,setLang}) {
               <div style={{fontSize:12,opacity:.75}}>{t.totalPredictions}</div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontSize:38,fontWeight:800,fontFamily:"JetBrains Mono,monospace"}}>84.8%</div>
+              <div style={{fontSize:38,fontWeight:800,fontFamily:"JetBrains Mono,monospace"}}>–</div>
               <div style={{fontSize:12,opacity:.75}}>{t.avgAccuracy}</div>
             </div>
           </div>
@@ -1447,7 +1447,7 @@ function OfficerApp({user,onLogout,lang,setLang}) {
             <div className="stat-grid">
               {[["👨‍🌾", dashData?.summary?.total_farmers||"–","Registered Farmers","var(--g600)"],
                 ["🌾",  dashData?.summary?.total_predictions||"0","Predictions Made","#7c3aed"],
-                ["📈",  dashData?.summary?.model_accuracy||"84.8%","Model Accuracy","var(--blue)"],
+                ["📈",  dashData?.summary?.model_accuracy||"–","Model Accuracy","var(--blue)"],
                 ["🏘️",  "15","Sectors","var(--amber)"]].map(([icon,val,lbl,clr])=>(
                 <div key={lbl} className="stat-box">
                   <div style={{fontSize:24,marginBottom:4}}>{icon}</div>
@@ -1572,7 +1572,7 @@ function OfficerApp({user,onLogout,lang,setLang}) {
               <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>📊 {t.farmerStats}</div>
               {[["Total Registered",dashData?.summary?.total_farmers||3],
                 ["Total Predictions",dashData?.summary?.total_predictions||0],
-                ["Model Accuracy",dashData?.summary?.model_accuracy||"84.8%"]].map(([k,v])=>(
+                ["Model Accuracy",dashData?.summary?.model_accuracy||"–"]].map(([k,v])=>(
                 <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,.15)"}}>
                   <span style={{fontSize:12,opacity:.9}}>{k}</span>
                   <span style={{fontWeight:800,fontSize:13}}>{v}</span>

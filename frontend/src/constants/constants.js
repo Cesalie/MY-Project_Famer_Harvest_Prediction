@@ -182,6 +182,80 @@ export function buildRecs(crop, yieldPA, inputs={}) {
   // Build recs array
   const recs = [];
 
+  // ── 0. WRONG SEASON / LATE PLANTING WARNING ──
+  // Ideal planting windows per crop in Bugesera
+  const IDEAL_MONTHS = {
+    Maize: {
+      "Season A": ["October","November"],
+      "Season B": ["March","April"],
+    },
+    Beans: {
+      "Season A": ["October","November"],
+      "Season B": ["March","April"],
+    },
+    Rice: {
+      "Season A": ["October","November"],
+      "Season B": ["March","April"],
+    },
+  };
+
+  // Best next planting dates per season/crop
+  const BEST_PLANTING = {
+    "Season A": { en: "October 15 – November 10", rw: "Ukwakira 15 – Ugushyingo 10" },
+    "Season B": { en: "March 10 – April 5",       rw: "Werurwe 10 – Mata 5" },
+  };
+
+  // Yield penalty info when planting out of window
+  const LATE_PENALTY = {
+    Maize: { pct: "15–25%", rw: "15–25%" },
+    Beans: { pct: "10–20%", rw: "10–20%" },
+    Rice:  { pct: "20–30%", rw: "20–30%" },
+  };
+
+  const idealMonths = (IDEAL_MONTHS[crop]||IDEAL_MONTHS.Maize)[season] || [];
+  const isWrongSeason = month && idealMonths.length > 0 && !idealMonths.includes(month);
+
+  if (isWrongSeason) {
+    const bestDate = (BEST_PLANTING[season] || BEST_PLANTING["Season A"]);
+    const penalty  = (LATE_PENALTY[crop] || LATE_PENALTY.Maize).pct;
+
+    // Months in Kinyarwanda
+    const MONTHS_RW = {
+      January:"Mutarama", February:"Gashyantare", March:"Werurwe",
+      April:"Mata", May:"Gicurasi", June:"Kamena", July:"Nyakanga",
+      August:"Kanama", September:"Nzeri", October:"Ukwakira",
+      November:"Ugushyingo", December:"Ukuboza"
+    };
+    const monthRW = MONTHS_RW[month] || month;
+
+    // Determine the consequences more precisely
+    const monthIdx   = ["January","February","March","April","May","June",
+                        "July","August","September","October","November","December"].indexOf(month);
+    const idealIdx0  = ["January","February","March","April","May","June",
+                        "July","August","September","October","November","December"].indexOf(idealMonths[0]);
+    const daysLate   = idealIdx0 >= 0 ? Math.abs(monthIdx - idealIdx0) * 30 : 30;
+
+    recs.push({
+      type: "warning",
+      icon: "bi-calendar-x",
+      category: `Wrong Planting Season — ${month} / Igihe Kitari Icyiza — ${monthRW}`,
+      message: `You planted ${crop} in ${month} which is outside the optimal ${season} window (${bestDate.en}). `
+             + `Planting ${daysLate}+ days off-season can reduce your yield by ${penalty} due to poor rainfall timing, `
+             + `temperature mismatch, and increased pest pressure.\n\n`
+             + `➡ Best planting time for ${crop} in ${season}: ${bestDate.en}.\n`
+             + `➡ Impact: Late/early planting causes moisture stress at germination, weak stem development, `
+             + `and lower grain fill, directly reducing your final harvest.`,
+      message_rw: `Mwateye ${crop} mu kwezi kwa ${monthRW} ari hanze y'igihe cyiza cya ${season} (${bestDate.rw}). `
+                + `Gutera imbuto ${daysLate}+ iminsi inyuma y'igihe bishobora kugabanya umusaruro wawe hagati ya ${penalty} `
+                + `kubera imvura itari mu gihe, ubushyuhe budahagije, n'udukoko twinshi.\n\n`
+                + `➡ Igihe cyiza cyo gutera ${crop} muri ${season}: ${bestDate.rw}.\n`
+                + `➡ Ingaruka: Gutera hanze y'igihe bitera imbuto kutamesa neza, imyaka kunanirwa gukura, `
+                + `n'umusaruro muke igihe cy'isarura.`,
+      goal: `Plan your next planting in ${bestDate.en} to recover ${penalty} of lost yield.`,
+      goal_rw: `Tegura gutera inshuro ikurikira hagati ya ${bestDate.rw} kugirango ugarure ${penalty} y'umusaruro wabaye muke.`,
+    });
+  }
+
   // ── 1. YIELD SUMMARY ──
   const seasonBench = (SEASON_BENCH[season]||SEASON_BENCH["Season A"])[crop] || base;
   const thresh      = YIELD_THRESHOLDS[crop] || YIELD_THRESHOLDS.Maize;

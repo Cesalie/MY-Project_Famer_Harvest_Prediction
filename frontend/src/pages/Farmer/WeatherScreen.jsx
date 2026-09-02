@@ -205,32 +205,74 @@ export default function WeatherScreen({ onNavigate, lang, setLang, user }) {
         {/* ── Monthly Rainfall Chart ── */}
         <div className="sec-hd"><i className="bi bi-bar-chart-line"></i> {t.monthlyRainfall}</div>
         <div className="card" style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: 'var(--s500)', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--s500)', marginBottom: 16 }}>
             {lang === 'en' ? 'Bugesera District - Historical monthly averages (mm)' : 'Akarere ka Bugesera - Impuzandengo y\'imvura buri kwezi (mm)'}
           </div>
-          {monthly.map(d => (
-            <div key={d.m} className="bar-row">
-              <div className="bar-lbl">{d.m}</div>
-              <div className="bar-track">
-                <div className="bar-fill" style={{ width: `${(d.rain / maxR) * 100}%` }} />
+          {/* Bar Chart */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, paddingBottom: 0 }}>
+            {monthly.map(d => (
+              <div key={d.m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                {/* Value label on top */}
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'var(--g700)', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>
+                  {d.rain}
+                </div>
+                {/* Bar */}
+                <div style={{
+                  width: '100%',
+                  height: `${Math.round((d.rain / maxR) * 120)}px`,
+                  background: 'linear-gradient(180deg, #0d9488, #0f3d38)',
+                  borderRadius: '4px 4px 0 0',
+                  transition: 'height .6s ease',
+                  minHeight: 4,
+                  boxShadow: '0 2px 6px rgba(13,148,136,0.25)'
+                }} />
+                {/* Month label */}
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--s500)', marginTop: 4 }}>{d.m}</div>
               </div>
-              <div className="bar-val">{d.rain} mm</div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* X-axis line */}
+          <div style={{ height: 1, background: 'var(--s200)', marginTop: 0, marginBottom: 6 }} />
+          <div style={{ fontSize: 10, color: 'var(--s400)', textAlign: 'right' }}>mm</div>
         </div>
 
         {/* ── Monthly Temperature Chart ── */}
         <div className="sec-hd"><i className="bi bi-thermometer-half"></i> {t.monthlyTemp}</div>
         <div className="card" style={{ marginBottom: 14 }}>
-          {monthly.map(d => (
-            <div key={d.m} className="bar-row">
-              <div className="bar-lbl">{d.m}</div>
-              <div className="bar-track">
-                <div className="bar-fill" style={{ width: `${((d.temp - 20) / 8) * 100}%`, background: 'linear-gradient(90deg,#0d9488,#f97316)' }} />
-              </div>
-              <div className="bar-val">{d.temp}°C</div>
-            </div>
-          ))}
+          <div style={{ fontSize: 11, color: 'var(--s500)', marginBottom: 16 }}>
+            {lang === 'en' ? 'Bugesera District - Historical monthly averages (°C)' : 'Akarere ka Bugesera - Impuzandengo y\'ubushyuhe buri kwezi (°C)'}
+          </div>
+          {/* Bar Chart */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160 }}>
+            {monthly.map(d => {
+              const minTemp = Math.min(...monthly.map(x => x.temp));
+              const maxTemp = Math.max(...monthly.map(x => x.temp));
+              const barHeight = Math.round(((d.temp - minTemp) / (maxTemp - minTemp + 1)) * 100) + 20;
+              return (
+                <div key={d.m} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  {/* Value label on top */}
+                  <div style={{ fontSize: 9, fontWeight: 800, color: '#f97316', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>
+                    {d.temp}°
+                  </div>
+                  {/* Bar */}
+                  <div style={{
+                    width: '100%',
+                    height: `${barHeight}px`,
+                    background: 'linear-gradient(180deg, #f97316, #0d9488)',
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'height .6s ease',
+                    minHeight: 4,
+                    boxShadow: '0 2px 6px rgba(249,115,22,0.2)'
+                  }} />
+                  {/* Month label */}
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--s500)', marginTop: 4 }}>{d.m}</div>
+                </div>
+              );
+            })}
+          </div>
+          {/* X-axis line */}
+          <div style={{ height: 1, background: 'var(--s200)', marginTop: 0, marginBottom: 6 }} />
+          <div style={{ fontSize: 10, color: 'var(--s400)', textAlign: 'right' }}>°C</div>
         </div>
 
         {/* ── Planting Calendar ── */}
